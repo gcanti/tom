@@ -1,10 +1,9 @@
 {
   "name": "tom",
-  "version": "0.0.1",
-  "description": "Web framework",
+  "version": "0.1.0",
+  "description": "Routing and state management",
   "main": "index.js",
   "scripts": {
-    "dev": "watchify dev/dev.jsx -o dev/dev.js -v"
   },
   "repository": {
     "type": "git",
@@ -18,11 +17,7 @@
   "homepage": "https://github.com/gcanti/tom",
   "tags": [],
   "dependencies": {
-    "path-to-regexp": "^1.0.2",
-    "tape": "^3.0.3",
-    "tcomb": "^0.4.0"
   },
   "devDependencies": {
-    "express": "^4.10.6"
   }
 }
