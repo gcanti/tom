@@ -1,67 +1,139 @@
-# State
+# Session
 
-The entire app state should be immutable, contained in one single point and passed in as `req.session`.
-
-# Routing
+The entire app state SHOULD be immutable and contained in one single place (see om) called *(user) session*.
 
 ```js
-var app = tom();
+var Session = require('lib/Session');
 
-// typed session
-var Session = t.struct({
+// developers MUST define this
+var State = struct({
   ...
 });
 
-// route definition
-app.route({
+var session = new Session(State: Type, initialState: ?State);
+```
 
-  method: 'GET', // 'GET' or 'POST'
+Retrieving the state:
 
-  path: '/users/:userId/projects', // params start with ':'
+```js
+session.getState() -> State
+```
 
-  // typed params
-  params: t.struct({
-    userId: t.Str
-  }),
+Updating the state means applying a *patch*:
 
-  // typed querystring
-  query: t.struct({
-    sort: t.enums.of('asc desc')
-  }),
+## Patch
 
-  handler: function (req, res, next) {
+```js
+var Patch = struct({
+  // the current state for the client
+  state: ?State,
+  // an acceptable argument for State.update
+  data: Obj // developers SHOULD refine this with an union
+});
+```
 
-    // * REQUEST *
-    req.method; // => 'GET'
-    req.url; // => '/users/1/projects?sort=asc'
-    req.params; // => {userId: '1'} (immutable)
-    req.query; // => {sort: 'asc'} (immutable)
-    req.body; // {...} if method === 'POST'
+To applying a patch call the `patch` method:
 
-    req.session; // app state (immutable)
+```js
+session.patch(patch: Patch, function callback(err, newState) {
+  ...
+})
+```
 
-    // req is mutable
-    req.user = new User();
+There are 2 cases:
 
-    // * RESPONSE *
-    // exec next middleware..
-    next();
-    // ..or render..
-    res.render(<MyComponent />);
-    // ..or update session..
-    res.update(spec);
-    // or redirect
-    res.redirect(url); // same req
+## 1.
+
+Condition: `patch.state === session.getState()`
+
+The patch will be applied and the `callback` will be called with `callback(null, newState)`
+
+
+## 2.
+
+Call `session.merge` if exists, otherwise call `callback` with:
+
+```js
+err = new Error('invalid state');
+err.patch = patch;
+```
+
+### merge
+
+Developers SHOULD implement:
+
+```js
+session.merge(patch: Patch, currenState: State, callback)
+```
+
+Where `callback` has the following signature `(err, state) -> Nil`.
+`merge` MUST call `callback(err)` if it's not possible to merge the states or
+call `callback(null, state)` where `state` is the merged state.
+
+# Context
+
+A context is an object containing the data associated to a route call:
+
+- `session: Session`
+- `method: "GET" | "POST"`
+- `url: Str`
+- `params: Obj`
+- `query: Obj`
+- `body: ?Obj`
+- `render(renderable: Any)`
+
+# Handler
+
+An handler is a function with the following signature:
+
+```
+(ctx: Context, next: Func) -> Nil
+```
+
+# Router
+
+```js
+var Router = require('lib/Router');
+var router = new Router();
+```
+
+## Adding a route
+
+```js
+// GET
+router.add({
+  method: 'GET',
+  path: '/users/:userId/projects',
+  handler: function (ctx, next) {
+    console.log(req.params.userId);
   }
 });
 
-// route call
-app.get('/users/1/projects?sort=asc');
-app.post('/users', body);
-
-// start the application
-app.run(function (renderable) {
-  React.render(renderable, document.body);
+// POST
+router.add({
+  method: 'POST',
+  path: '/users/add',
+  handler: function (ctx, next) {
+    console.log(req.body);
+  }
 });
-
 ```
+
+## Run a url against a router
+
+```js
+router.run(url: Str, ctx: ?Context);
+```
+
+# App
+
+```js
+var App = require('lib/App');
+var app = new App(session);
+```
+
+Implements `Router` and:
+
+- `get(path: Str)`
+- `post(path: Str, body: ?Obj)`
+- `start(callback: (renderable) -> Nil)`
