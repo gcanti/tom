@@ -4,6 +4,7 @@
   "description": "Routing and state management",
   "main": "index.js",
   "scripts": {
+    "dev": "watchify dev/test.jsx -o dev/test.js -v"
   },
   "repository": {
     "type": "git",
@@ -17,7 +18,9 @@
   "homepage": "https://github.com/gcanti/tom",
   "tags": [],
   "dependencies": {
+    "debug": "^2.1.1",
+    "eventemitter3": "^0.1.6",
+    "tcomb": "^0.4.0"
   },
-  "devDependencies": {
-  }
+  "devDependencies": {}
 }

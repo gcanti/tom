@@ -3,17 +3,29 @@
 The entire app state SHOULD be immutable and contained in one single place (see om) called *(user) session*.
 
 ```js
+var t = require('tcomb');
 var Session = require('lib/Session');
 
 // developers MUST define this
-var State = struct({
+var State = t.struct({
   ...
 });
 
-var session = new Session(State: Type, initialState: ?State);
+// developers MAY define this
+var Patch = t.struct({
+  state: t.maybe(State),
+  data: ... // default t.Obj
+});
+
+var session = new Session({
+  State: State, // state constructor (required)
+  state: {},    // initial state (required)
+  Patch: Patch, // patch constructor (optional)
+  merge: function () {} // patch merge strategy (optional)
+});
 ```
 
-Retrieving the state:
+## Get the state
 
 ```js
 session.getState() -> State
@@ -21,24 +33,27 @@ session.getState() -> State
 
 Updating the state means applying a *patch*:
 
-## Patch
+## Patch the state
 
 ```js
-var Patch = struct({
+// default constructor
+var Patch = t.struct({
   // the current state for the client
-  state: ?State,
+  state: t.maybe(State),
   // an acceptable argument for State.update
-  data: Obj // developers SHOULD refine this with an union
+  data: t.Obj
 });
 ```
 
 To applying a patch call the `patch` method:
 
 ```js
-session.patch(patch: Patch, function callback(err, newState) {
+session.patch(patch: Patch, function (err, newState) {
   ...
 })
 ```
+
+The callback is optional.
 
 There are 2 cases:
 
@@ -69,6 +84,13 @@ session.merge(patch: Patch, currenState: State, callback)
 Where `callback` has the following signature `(err, state) -> Nil`.
 `merge` MUST call `callback(err)` if it's not possible to merge the states or
 call `callback(null, state)` where `state` is the merged state.
+
+## Listen to state changes and errors
+
+```js
+session.on('change' | 'error', listener);
+session.off('change' | 'error', listener);
+```
 
 # Context
 
