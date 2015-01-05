@@ -9,7 +9,7 @@ function noop() {}
 function getDeafultPatch(State) {
   debug('using default Patch');
   return t.struct({
-    state: t.maybe(State),
+    token: t.maybe(State),
     data: t.Obj
   }, 'Patch');
 }
@@ -18,54 +18,35 @@ function Session(opts) {
 
   var State = t.Type(opts.State);
   var Patch = t.maybe(t.Type)(opts.Patch) || getDeafultPatch(State);
-  var state = t.maybe(State)(opts.state); // keep the state private
   var merge = t.maybe(t.Func)(opts.merge);
-  var ee = new EventEmitter();
+  var emitter = new EventEmitter();
+
+  // keep the state private
+  var state = t.maybe(State)(opts.state);
 
   function getState() {
     return state;
   }
 
-  function patch(patch, callback) {
+  function patch(patch) {
 
     patch = new Patch(patch);
-    callback = t.maybe(t.Func)(callback) || noop;
 
-    debug('patching %j', patch.data);
+    debug('patching');
 
-    if (patch.state === state) {
-
+    if (patch.token === state) {
       state = State.update(state, patch.data);
       debug('patch succeded');
-      callback(null, state);
-      ee.emit('change', state);
-
     } else if (merge) {
-
-      debug('calling merge algorithm');
-      merge(patch, state, function (err, newState) {
-        if (err) {
-          debug('merge failed');
-          callback(err);
-          ee.emit('error', err);
-        } else {
-          state = new State(newState);
-          debug('merge succeded');
-          callback(null, state);
-          ee.emit('change', state);
-        }
-      });
-
+      debug('merging');
+      state = new State(merge(patch, state));
+      debug('merge succeded');
     } else {
-
-      debug('patch failed: no merge algorithm specified');
-      var err = new Error('invalid state');
-      err.patch = patch;
-      err.state = state;
-      callback(err);
-      ee.emit('error', err);
-
+      throw new Error('patch failed: no merge algorithm specified');
     }
+
+    emitter.emit('change', state);
+    return state;
   }
 
   return Object.freeze({
@@ -73,9 +54,9 @@ function Session(opts) {
     Patch: Patch,
     getState: getState,
     patch: patch,
-    on: ee.on.bind(ee),
-    off: ee.on.bind(ee),
-    once: ee.on.bind(ee)
+    on: emitter.on.bind(emitter),
+    off: emitter.on.bind(emitter),
+    once: emitter.on.bind(emitter)
   });
 }
 

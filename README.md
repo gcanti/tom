@@ -4,24 +4,18 @@ The entire app state SHOULD be immutable and contained in one single place (see 
 
 ```js
 var t = require('tcomb');
-var Session = require('lib/Session');
+var Session = require('tom/Session');
 
 // developers MUST define this
 var State = t.struct({
   ...
 });
 
-// developers MAY define this
-var Patch = t.struct({
-  state: t.maybe(State),
-  data: ... // default t.Obj
-});
-
 var session = new Session({
-  State: State, // state constructor (required)
-  state: {},    // initial state (required)
-  Patch: Patch, // patch constructor (optional)
-  merge: function () {} // patch merge strategy (optional)
+  State: State, // : Type, state constructor (required)
+  state: {},    // : Obj, initial state (required)
+  Patch: Patch, // : Type, patch constructor (optional)
+  merge: ...    // : Func, patches merge strategy (optional)
 });
 ```
 
@@ -31,65 +25,37 @@ var session = new Session({
 session.getState() -> State
 ```
 
-Updating the state means applying a *patch*:
-
-## Patch the state
+## Update the state
 
 ```js
 // default constructor
 var Patch = t.struct({
-  // the current state for the client
-  state: t.maybe(State),
+  // the current state from the client POV
+  token: t.maybe(State),
   // an acceptable argument for State.update
   data: t.Obj
 });
+
+session.patch(patch: Patch, currentState: State) -> State
 ```
 
-To applying a patch call the `patch` method:
+- if `patch.token === currentState` the patch will be applied
+- if `merge` exists, will be called
+- throws an error
 
-```js
-session.patch(patch: Patch, function (err, newState) {
-  ...
-})
-```
-
-The callback is optional.
-
-There are 2 cases:
-
-## 1.
-
-Condition: `patch.state === session.getState()`
-
-The patch will be applied and the `callback` will be called with `callback(null, newState)`
-
-
-## 2.
-
-Call `session.merge` if exists, otherwise call `callback` with:
-
-```js
-err = new Error('invalid state');
-err.patch = patch;
-```
-
-### merge
+### merge(patch, currentState)
 
 Developers SHOULD implement:
 
 ```js
-session.merge(patch: Patch, currenState: State, callback)
+merge(patch: Patch, currentState: State) -> State
 ```
 
-Where `callback` has the following signature `(err, state) -> Nil`.
-`merge` MUST call `callback(err)` if it's not possible to merge the states or
-call `callback(null, state)` where `state` is the merged state.
-
-## Listen to state changes and errors
+## Listen to state changes
 
 ```js
-session.on('change' | 'error', listener);
-session.off('change' | 'error', listener);
+session.on('change', listener);
+session.off('change', listener);
 ```
 
 # Context
