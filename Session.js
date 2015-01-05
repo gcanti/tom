@@ -34,18 +34,22 @@ function Session(opts) {
 
     debug('patching');
 
+    var nextState;
     if (patch.token === state) {
-      state = State.update(state, patch.data);
+      nextState = State.update(state, patch.data);
       debug('patch succeded');
     } else if (merge) {
       debug('merging');
-      state = new State(merge(patch, state));
+      nextState = new State(merge(patch, state));
       debug('merge succeded');
     } else {
       throw new Error('patch failed: no merge algorithm specified');
     }
 
-    emitter.emit('change', state);
+    if (nextState !== state) {
+      state = nextState;
+      emitter.emit('change', state);
+    }
     return state;
   }
 
