@@ -58,30 +58,46 @@ session.on('change', listener);
 session.off('change', listener);
 ```
 
+# Request
+
+A request is an object containing the data associated to a route call:
+
+```js
+var Request = t.struct({
+  method: t.enums.of('GET POST'),
+  url: t.Str,
+  path: t.Str,
+  query: t.Obj,
+  body: t.maybe(t.Obj)
+});
+```
+
+# Response
+
+```js
+{
+  flush(),                  // flush current state
+  redirect(url: t.Str),     // same as app.get(url)
+  render(renderable: t.Any)
+}
+```
+
 # Context
 
-A context is an object containing the data associated to a route call:
-
-- `session: Session`
-- `method: "GET" | "POST"`
-- `url: Str`
-- `params: Obj`
-- `query: Obj`
-- `body: ?Obj`
-- `render(renderable: Any)`
-
-# Handler
-
-An handler is a function with the following signature:
-
-```
-(ctx: Context, next: Func) -> Nil
+```js
+{
+  session: Session,
+  req: Request,
+  res: Response,
+  params: t.Obj,
+  next() // exec next middleware
+}
 ```
 
 # Router
 
 ```js
-var Router = require('lib/Router');
+var Router = require('tom/Router');
 var router = new Router();
 ```
 
@@ -92,8 +108,8 @@ var router = new Router();
 router.add({
   method: 'GET',
   path: '/users/:userId/projects',
-  handler: function (ctx, next) {
-    console.log(req.params.userId);
+  handler: function (ctx) {
+    console.log(ctx.req.params.userId);
   }
 });
 
@@ -101,27 +117,27 @@ router.add({
 router.add({
   method: 'POST',
   path: '/users/add',
-  handler: function (ctx, next) {
-    console.log(req.body);
+  handler: function (ctx) {
+    console.log(ctx.req.body);
   }
 });
 ```
 
-## Run a url against a router
+## Run a request against a router
 
 ```js
-router.run(url: Str, ctx: ?Context);
+router.run(session: Session, req: Request, res: Response)
 ```
 
 # App
 
 ```js
-var App = require('lib/App');
+var App = require('tom/App');
 var app = new App(session);
 ```
 
 Implements `Router` and:
 
-- `get(path: Str)`
-- `post(path: Str, body: ?Obj)`
-- `start(callback: (renderable) -> Nil)`
+- `get(url: Str)`
+- `post(url: Str, body: ?Obj)`
+- `start(onRender(renderable), onFlush(state))`

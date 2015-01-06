@@ -4,8 +4,6 @@ var t = require('tcomb');
 var debug = require('debug')('Session');
 var EventEmitter = require('eventemitter3');
 
-function noop() {}
-
 function getDeafultPatch(State) {
   debug('using default Patch');
   return t.struct({
@@ -32,7 +30,7 @@ function Session(opts) {
 
     patch = new Patch(patch);
 
-    debug('patching');
+    debug('patching %j', patch.data);
 
     var nextState;
     if (patch.token === state) {
@@ -43,25 +41,25 @@ function Session(opts) {
       nextState = new State(merge(patch, state));
       debug('merge succeded');
     } else {
-      throw new Error('patch failed: no merge algorithm specified');
+      throw new Error('patch failure: no merge algorithm specified');
     }
 
     if (nextState !== state) {
       state = nextState;
       emitter.emit('change', state);
     }
+
     return state;
   }
 
-  return Object.freeze({
+  Object.freeze(t.util.mixin(this, {
     State: State,
     Patch: Patch,
     getState: getState,
     patch: patch,
     on: emitter.on.bind(emitter),
-    off: emitter.on.bind(emitter),
-    once: emitter.on.bind(emitter)
-  });
+    off: emitter.off.bind(emitter)
+  }));
 }
 
 module.exports = Session;

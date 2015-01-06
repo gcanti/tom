@@ -1,3 +1,8 @@
-'use strict';
+var t = require('tcomb');
 
-module.exports = {};
+t.om = {
+  App: require('./App'),
+  Session: require('./Session')
+};
+
+module.exports = t
