@@ -5,10 +5,10 @@ var debug = require('debug')('Session');
 var EventEmitter = require('eventemitter3');
 
 function getDeafultPatch(State) {
-  debug('using default Patch');
+  debug('using default `Patch` constructor');
   return t.struct({
     token: t.maybe(State),
-    data: t.Obj
+    spec: t.Obj
   }, 'Patch');
 }
 
@@ -20,7 +20,7 @@ function Session(opts) {
   var emitter = new EventEmitter();
 
   // keep the state private
-  var state = t.maybe(State)(opts.state);
+  var state = t.maybe(State)(opts.initialState);
 
   function getState() {
     return state;
@@ -30,11 +30,11 @@ function Session(opts) {
 
     patch = new Patch(patch);
 
-    debug('patching %j', patch.data);
+    debug('patching %j', patch.spec);
 
     var nextState;
     if (patch.token === state) {
-      nextState = State.update(state, patch.data);
+      nextState = State.update(state, patch.spec);
       debug('patch succeded');
     } else if (merge) {
       debug('merging');

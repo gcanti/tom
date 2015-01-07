@@ -26,7 +26,7 @@ var Route = t.struct({
   method: Method,
   path: t.Str,
   handler: t.Func
-});
+}, 'Route');
 
 function Layer(method, path, handler, options) {
   this.method = method;
@@ -39,23 +39,40 @@ function Router() {
   this.layers = {};
 }
 
-Router.prototype.add = function(route) {
+Router.prototype.define = function(route) {
   route = new Route(route);
   debug('adding route `%s %s`', route.method, route.path);
   this.layers[route.method] = this.layers[route.method] || [];
   this.layers[route.method].push(new Layer(route.method, route.path, route.handler));
+  return this;
 };
 
-Router.prototype.run = function(session, req, res) {
+Router.prototype.get = function(path, handler) {
+  return this.define({
+    method: 'GET',
+    path: path,
+    handler: handler
+  });
+};
+
+Router.prototype.post = function(path, handler) {
+  return this.define({
+    method: 'POST',
+    path: path,
+    handler: handler
+  });
+};
+
+Router.prototype.dispatch = function(req, res) {
 
   req = new Request(req);
   res = new Response(res);
 
-  debug('running `%s`', req.url);
+  debug('dispatching `%s %s`', req.method, req.url);
   var layers = this.layers[req.method].slice();
   debug('%s candidate layer(s) found', layers.length);
 
-  var ctx = new Context(session, req, res, next);
+  var ctx = new Context(req, res, next);
 
   function next() {
     if (!layers.length) {
@@ -73,6 +90,7 @@ Router.prototype.run = function(session, req, res) {
 
   next();
 
+  return this;
 };
 
 module.exports = Router;

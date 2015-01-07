@@ -1,3 +1,72 @@
+# Example
+
+```js
+var React = require('react');
+var t = require('tom');
+
+//
+// domain
+//
+
+var Todo = t.struct({
+  title: t.Str,
+  completed: t.Bool
+});
+var State = t.list(Todo);
+var state = State([]);
+
+//
+// app
+//
+
+var app = new t.om.App();
+
+app.get('/todos', function (ctx) {
+  ctx.res.render(<App state={state} />);
+});
+
+app.post('/todo', function (ctx) {
+  var todo = new Todo({
+    title: ctx.req.body.title,
+    completed: false
+  });
+  state = State.update(state, {'$push': [todo]});
+  ctx.res.redirect('/todos');
+});
+
+//
+// ui
+//
+var App = React.createClass({
+
+  addTodo: function () {
+    var title = this.refs.input.getDOMNode().value.trim();
+    if (title) {
+      app.call('POST', '/todo', {title: title});
+    }
+  },
+
+  render: function () {
+    return (
+      <div>
+      <pre>{JSON.stringify(this.props.state, null, 2)}</pre>
+      <input type="text" ref="input"/>
+      <button onClick={this.addTodo}>Add</button>
+      </div>
+    );
+  }
+  
+});
+
+// start the app
+app.run(function (handler) {
+  React.render(handler, document.getElementById('app'));
+});
+
+// make a request
+app.call('GET', '/todos');
+```
+
 # Session
 
 The entire app state SHOULD be immutable and contained in one single place (see om) called *(user) session*.
@@ -13,7 +82,7 @@ var State = t.struct({
 
 var session = new Session({
   State: State, // : Type, state constructor (required)
-  state: {},    // : Obj, initial state (required)
+  initialState: {},    // : Obj, initial state (required)
   Patch: Patch, // : Type, patch constructor (optional)
   merge: ...    // : Func, patches merge strategy (optional)
 });
@@ -33,7 +102,7 @@ var Patch = t.struct({
   // the current state from the client POV
   token: t.maybe(State),
   // an acceptable argument for State.update
-  data: t.Obj
+  spec: t.Obj
 });
 
 session.patch(patch: Patch, currentState: State) -> State
@@ -63,21 +132,20 @@ session.off('change', listener);
 A request is an object containing the data associated to a route call:
 
 ```js
-var Request = t.struct({
-  method: t.enums.of('GET POST'),
+{
+  method: "GET" | "POST",
   url: t.Str,
   path: t.Str,
   query: t.Obj,
   body: t.maybe(t.Obj)
-});
+}
 ```
 
 # Response
 
 ```js
 {
-  flush(),                  // flush current state
-  redirect(url: t.Str),     // same as app.get(url)
+  redirect(url: t.Str), // same as app.call('GET', url)
   render(renderable: t.Any)
 }
 ```
@@ -86,10 +154,9 @@ var Request = t.struct({
 
 ```js
 {
-  session: Session,
   req: Request,
   res: Response,
-  params: t.Obj,
+  params: t.Obj, // contains the path params
   next() // exec next middleware
 }
 ```
@@ -101,11 +168,11 @@ var Router = require('tom/Router');
 var router = new Router();
 ```
 
-## Adding a route
+## Defining a route
 
 ```js
 // GET
-router.add({
+router.define({
   method: 'GET',
   path: '/users/:userId/projects',
   handler: function (ctx) {
@@ -114,7 +181,7 @@ router.add({
 });
 
 // POST
-router.add({
+router.define({
   method: 'POST',
   path: '/users/add',
   handler: function (ctx) {
@@ -123,21 +190,29 @@ router.add({
 });
 ```
 
-## Run a request against a router
+### Aliases
 
 ```js
-router.run(session: Session, req: Request, res: Response)
+app.get(path, handler);
+app.post(path, handler);
+```
+
+## Dispatching
+
+```js
+router.dispatch(req: Request, res: Response)
 ```
 
 # App
 
 ```js
-var App = require('tom/App');
-var app = new App(session);
+var t = require('tom');
+var app = new t.om.App();
 ```
 
 Implements `Router` and:
 
-- `get(url: Str)`
-- `post(url: Str, body: ?Obj)`
-- `start(onRender(renderable), onFlush(state))`
+```js
+call(method: Method, url: Str, body: ?Obj)
+run(onRender(renderable: Any))
+```

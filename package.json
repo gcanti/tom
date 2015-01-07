@@ -4,7 +4,7 @@
   "description": "Routing and state management",
   "main": "index.js",
   "scripts": {
-    "dev": "watchify dev/test.jsx -o dev/test.js -v"
+    "dev": "watchify -t reactify dev/test.jsx -o dev/test.js -v"
   },
   "repository": {
     "type": "git",
@@ -23,5 +23,7 @@
     "path-to-regexp": "^1.0.2",
     "tcomb": "^0.4.0"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "reactify": "^0.17.1"
+  }
 }
