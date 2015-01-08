@@ -21,17 +21,34 @@ var state = State([]);
 
 var app = new t.om.App();
 
-app.get('/todos', function (ctx) {
-  ctx.res.render(<App state={state} />);
+// a middleware
+app.route({
+  method: 'GET',
+  path: '/(.*)',
+  handler: function (ctx) {
+    ctx.next();
+  }
 });
 
-app.post('/todo', function (ctx) {
-  var todo = new Todo({
-    title: ctx.req.body.title,
-    completed: false
-  });
-  state = State.update(state, {'$push': [todo]});
-  ctx.res.redirect('/todos');
+app.route({
+  method: 'GET',
+  path: '/all',
+  handler: function (ctx) {
+    ctx.res.render(<App state={state} />);
+  }
+});
+
+app.route({
+  method: 'POST',
+  path: '/add',
+  handler: function (ctx) {
+    var todo = new Todo({
+      title: ctx.req.body.title,
+      completed: false
+    });
+    state = State.update(state, {'$push': [todo]});
+    ctx.res.redirect('/all');
+  }
 });
 
 //
@@ -42,7 +59,7 @@ var App = React.createClass({
   addTodo: function () {
     var title = this.refs.input.getDOMNode().value.trim();
     if (title) {
-      app.call('POST', '/todo', {title: title});
+      app.post('/add', {title: title});
     }
   },
 
@@ -55,7 +72,7 @@ var App = React.createClass({
       </div>
     );
   }
-  
+
 });
 
 // start the app
@@ -64,7 +81,7 @@ app.run(function (handler) {
 });
 
 // make a request
-app.call('GET', '/todos');
+app.get('/all');
 ```
 
 # Session
@@ -171,30 +188,11 @@ var router = new Router();
 ## Defining a route
 
 ```js
-// GET
-router.define({
-  method: 'GET',
-  path: '/users/:userId/projects',
-  handler: function (ctx) {
-    console.log(ctx.req.params.userId);
-  }
+router.route({
+  method: "GET" | "POST",
+  path: t.Str,
+  handler: t.Func // function (ctx) {}
 });
-
-// POST
-router.define({
-  method: 'POST',
-  path: '/users/add',
-  handler: function (ctx) {
-    console.log(ctx.req.body);
-  }
-});
-```
-
-### Aliases
-
-```js
-app.get(path, handler);
-app.post(path, handler);
 ```
 
 ## Dispatching
@@ -213,6 +211,7 @@ var app = new t.om.App();
 Implements `Router` and:
 
 ```js
-call(method: Method, url: Str, body: ?Obj)
+get(url: Str)
+post(url: Str, body: ?Obj)
 run(onRender(renderable: Any))
 ```

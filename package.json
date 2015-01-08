@@ -4,7 +4,7 @@
   "description": "Routing and state management",
   "main": "index.js",
   "scripts": {
-    "dev": "watchify -t reactify dev/test.jsx -o dev/test.js -v"
+    "todomvc": "watchify -t reactify todomvc/todomvc.jsx -o todomvc/todomvc.js -v"
   },
   "repository": {
     "type": "git",
@@ -24,6 +24,8 @@
     "tcomb": "^0.4.0"
   },
   "devDependencies": {
-    "reactify": "^0.17.1"
+    "react": "^0.12.2",
+    "reactify": "^0.17.1",
+    "watchify": "^2.2.1"
   }
 }

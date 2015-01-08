@@ -1,9 +1,8 @@
 var t = require('tcomb');
 
 t.om = {
-  App: require('./App'),
-  Session: require('./Session'),
+  App: require('./lib/App'),
   debug: require('debug')
 };
 
-module.exports = t
+module.exports = t;
