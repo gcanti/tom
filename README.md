@@ -1,3 +1,20 @@
+A complete routing library <del>for React</del>.
+
+# Features
+
+- express-like routing concept
+- runs both on browser and on server
+- configurable state management
+- configurable ui target (React, ...)
+- configurable nested ui management
+- configurable location (hashchange, popstate)
+- configurable path to regexp implementation
+- simple api:
+  - `route(spec)`
+  - `run(callback)`
+  - `get(url)`
+  - `post(url, [body])`
+
 # Example
 
 ```js
@@ -5,10 +22,11 @@ var React = require('react');
 var t = require('tom');
 
 //
-// domain
+// configurable state management
 //
 
 var Todo = t.struct({
+  id: t.Str,
   title: t.Str,
   completed: t.Bool
 });
@@ -16,33 +34,25 @@ var State = t.list(Todo);
 var state = State([]);
 
 //
-// app
+// express-like routing concept
 //
 
 var app = new t.om.App();
 
-// a middleware
+// get all todos
 app.route({
-  method: 'GET',
-  path: '/(.*)',
-  handler: function (ctx) {
-    ctx.next();
-  }
-});
-
-app.route({
-  method: 'GET',
-  path: '/all',
+  method: 'GET', path: '/all',
   handler: function (ctx) {
     ctx.res.render(<App state={state} />);
   }
 });
 
+// add a todo
 app.route({
-  method: 'POST',
-  path: '/add',
+  method: 'POST', path: '/add',
   handler: function (ctx) {
     var todo = new Todo({
+      id: '1',
       title: ctx.req.body.title,
       completed: false
     });
@@ -52,8 +62,13 @@ app.route({
 });
 
 //
-// ui
+// configurable ui target
 //
+
+app.run(function (renderable) {
+  React.render(renderable, document.getElementById('app'));
+});
+
 var App = React.createClass({
 
   addTodo: function () {
@@ -75,76 +90,26 @@ var App = React.createClass({
 
 });
 
-// start the app
-app.run(function (handler) {
-  React.render(handler, document.getElementById('app'));
-});
+//
+// configurable location
+//
 
-// make a request
-app.get('/all');
+// listen to hash changes
+window.onhashchange = function () {
+  app.get(location.hash.substr(1));
+};
+
+// first rendering
+if (location.hash) {
+  window.onhashchange();
+} else {
+  location.hash = '/all';
+}
 ```
 
-# Session
+# API
 
-The entire app state SHOULD be immutable and contained in one single place (see om) called *(user) session*.
-
-```js
-var t = require('tcomb');
-var Session = require('tom/Session');
-
-// developers MUST define this
-var State = t.struct({
-  ...
-});
-
-var session = new Session({
-  State: State, // : Type, state constructor (required)
-  initialState: {},    // : Obj, initial state (required)
-  Patch: Patch, // : Type, patch constructor (optional)
-  merge: ...    // : Func, patches merge strategy (optional)
-});
-```
-
-## Get the state
-
-```js
-session.getState() -> State
-```
-
-## Update the state
-
-```js
-// default constructor
-var Patch = t.struct({
-  // the current state from the client POV
-  token: t.maybe(State),
-  // an acceptable argument for State.update
-  spec: t.Obj
-});
-
-session.patch(patch: Patch, currentState: State) -> State
-```
-
-- if `patch.token === currentState` the patch will be applied
-- if `merge` exists, will be called
-- throws an error
-
-### merge(patch, currentState)
-
-Developers SHOULD implement:
-
-```js
-merge(patch: Patch, currentState: State) -> State
-```
-
-## Listen to state changes
-
-```js
-session.on('change', listener);
-session.off('change', listener);
-```
-
-# Request
+## Request
 
 A request is an object containing the data associated to a route call:
 
@@ -158,16 +123,16 @@ A request is an object containing the data associated to a route call:
 }
 ```
 
-# Response
+## Response
 
 ```js
 {
-  redirect(url: t.Str), // same as app.call('GET', url)
+  redirect(url: t.Str), // same as app.get(url)
   render(renderable: t.Any)
 }
 ```
 
-# Context
+## Context
 
 ```js
 {
@@ -178,34 +143,37 @@ A request is an object containing the data associated to a route call:
 }
 ```
 
-# Router
+## Router
 
 ```js
 var Router = require('tom/Router');
-var router = new Router();
+// default path to regexp implementation
+var matcher = require('tom/lib/matcher');
+var router = new Router(matcher);
 ```
 
-## Defining a route
+### Defining a route
 
 ```js
 router.route({
   method: "GET" | "POST",
   path: t.Str,
-  handler: t.Func // function (ctx) {}
+  handler: t.Func // function (ctx: Context) {}
 });
 ```
 
-## Dispatching
+### Dispatching
 
 ```js
 router.dispatch(req: Request, res: Response)
 ```
 
-# App
+## App
 
 ```js
 var t = require('tom');
-var app = new t.om.App();
+var matcher = require('tom/lib/matcher');
+var app = new t.om.App(matcher);
 ```
 
 Implements `Router` and:

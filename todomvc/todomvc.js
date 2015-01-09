@@ -19,8 +19,8 @@ var Request = require('./Request');
 var Response = require('./Response');
 var assert = t.assert;
 
-function App() {
-  Router.call(this);
+function App(matcher) {
+  Router.call(this, matcher);
   this.started = false;
   this.res = new Response({
     redirect: this.redirect.bind(this),
@@ -42,22 +42,22 @@ App.prototype.render = function (renderable) {
 };
 
 App.prototype.get = function (url) {
-  debug('GET `%s`', url);
   var req = Request.of('GET', url);
+  debug(req + '');
   return this.dispatch(req, this.res);
 };
 
 App.prototype.post = function (url, body) {
-  debug('POST `%s`', url);
   var req = Request.of('POST', url, body);
+  debug(req + '');
   return this.dispatch(req, this.res);
 };
 
 App.prototype.run = function (onRender) {
-  assert(t.Func.is(onRender), 'onRender must be a function');
-  debug('running');
+  assert(t.Func.is(onRender), 'Invalid argument `onRender` supplied to run()');
   this.onRender = onRender;
   this.running = true;
+  debug('running');
   return this;
 };
 
@@ -100,6 +100,10 @@ var Request = t.struct({
   body: t.maybe(t.Obj)
 }, 'Request');
 
+Request.prototype.toString = function() {
+  return t.util.format('[%s %s, Request]', this.method, this.url);
+};
+
 Request.of = function (method, url, body) {
   var parsed = parse(url);
   return new Request({
@@ -131,46 +135,49 @@ var debug = require('debug')('Router');
 var Request = require('./Request');
 var Response = require('./Response');
 var Method = require('./Method');
-var pathToRegexp = require('path-to-regexp');
 var Context = require('./Context');
 
-function getParams(match, keys) {
-  var params = {};
-  for (var i = 0, len = keys.length ; i < len ; i++) {
-    var key = keys[i];
-    var param = match[i + 1];
-    if (!param) { continue; }
-    params[key.name] = decodeURIComponent(param);
-    if (key.repeat) {
-      params[key.name] = params[key.name].split(key.delimiter);
-    }
-  }
-  return params;
-}
+var Params = t.dict(t.Str, t.Type, 'Params');
 
 var Route = t.struct({
   method: Method,
   path: t.Str,
-  handler: t.Func
+  handler: t.Func,
+  name: t.maybe(t.Str),
+  params: t.maybe(Params)
 }, 'Route');
 
-function Layer(method, path, handler, options) {
-  this.method = method;
-  this.path = path;
-  this.handler = handler;
-  this.regexp = pathToRegexp(path, this.keys = [], options);
-}
+Route.prototype.toString = function() {
+  return t.util.format('[%s %s, Route]', this.method, this.path);
+};
 
-function Router() {
+var Layer = t.struct({
+  route: Route,
+  match: t.Func
+}, 'Layer');
+
+function Router(matcher) {
+  // inject the actual implementation
+  this.matcher = matcher;
   this.layers = {};
 }
 
 Router.prototype.route = function(route) {
+
   route = new Route(route);
-  debug('adding route `%s %s`', route.method, route.path);
-  this.layers[route.method] = this.layers[route.method] || [];
-  this.layers[route.method].push(new Layer(route.method, route.path, route.handler));
+
+  debug('adding %s', route + '');
+  var layers = this.layers[route.method] = this.layers[route.method] || [];
+  layers.push(new Layer({
+    route: route,
+    match: this.matcher(route.path)
+  }));
+
   return this;
+};
+
+Router.prototype.getLayers = function(method) {
+  return this.layers[method] ? this.layers[method].slice() : [];
 };
 
 Router.prototype.dispatch = function(req, res) {
@@ -178,8 +185,8 @@ Router.prototype.dispatch = function(req, res) {
   req = new Request(req);
   res = new Response(res);
 
-  debug('dispatching `%s %s`', req.method, req.url);
-  var layers = (this.layers[req.method] || []).slice();
+  debug('dispatching %s', req + '');
+  var layers = this.getLayers(req.method);
   debug('%s candidate layer(s) found', layers.length);
 
   var ctx = new Context(req, res, next);
@@ -189,13 +196,13 @@ Router.prototype.dispatch = function(req, res) {
       throw new Error(t.util.format('Match not found for `%s %s`', req.method, req.path));
     }
     var layer = layers.shift();
-    var match = layer.regexp.exec(req.path);
-    if (!match) {
+    var params = layer.match(req.path);
+    if (!params) {
       return next();
     }
-    debug('match found: `%s %s`', layer.method, layer.path);
-    ctx.params = getParams(match, layer.keys);
-    layer.handler(ctx);
+    debug('match found: %s', layer.route + '');
+    ctx.params = params;
+    layer.route.handler(ctx);
   }
 
   next();
@@ -204,8 +211,72 @@ Router.prototype.dispatch = function(req, res) {
 };
 
 module.exports = Router;
-},{"./Context":"/Users/giulio/Documents/Projects/github/tom/lib/Context.js","./Method":"/Users/giulio/Documents/Projects/github/tom/lib/Method.js","./Request":"/Users/giulio/Documents/Projects/github/tom/lib/Request.js","./Response":"/Users/giulio/Documents/Projects/github/tom/lib/Response.js","debug":"/Users/giulio/Documents/Projects/github/tom/node_modules/debug/browser.js","path-to-regexp":"/Users/giulio/Documents/Projects/github/tom/node_modules/path-to-regexp/index.js","tcomb":"/Users/giulio/Documents/Projects/github/tom/node_modules/tcomb/index.js"}],"/Users/giulio/Documents/Projects/github/tom/lib/Session.js":[function(require,module,exports){
+},{"./Context":"/Users/giulio/Documents/Projects/github/tom/lib/Context.js","./Method":"/Users/giulio/Documents/Projects/github/tom/lib/Method.js","./Request":"/Users/giulio/Documents/Projects/github/tom/lib/Request.js","./Response":"/Users/giulio/Documents/Projects/github/tom/lib/Response.js","debug":"/Users/giulio/Documents/Projects/github/tom/node_modules/debug/browser.js","tcomb":"/Users/giulio/Documents/Projects/github/tom/node_modules/tcomb/index.js"}],"/Users/giulio/Documents/Projects/github/tom/lib/Session.js":[function(require,module,exports){
 'use strict';
+
+/*
+
+  # Session
+
+  The entire app state SHOULD be immutable and contained in one single place (see om) called *(user) session*.
+
+  ```js
+  var t = require('tcomb');
+  var Session = require('tom/Session');
+
+  // developers MUST define this
+  var State = t.struct({
+    ...
+  });
+
+  var session = new Session({
+    State: State, // : Type, state constructor (required)
+    initialState: {},    // : Obj, initial state (required)
+    Patch: Patch, // : Type, patch constructor (optional)
+    merge: ...    // : Func, patches merge strategy (optional)
+  });
+  ```
+
+  ## Get the state
+
+  ```js
+  session.getState() -> State
+  ```
+
+  ## Update the state
+
+  ```js
+  // default constructor
+  var Patch = t.struct({
+    // the current state from the client POV
+    token: t.maybe(State),
+    // an acceptable argument for State.update
+    spec: t.Obj
+  });
+
+  session.patch(patch: Patch, currentState: State) -> State
+  ```
+
+  - if `patch.token === currentState` the patch will be applied
+  - if `merge` exists, will be called
+  - throws an error
+
+  ### merge(patch, currentState)
+
+  Developers SHOULD implement:
+
+  ```js
+  merge(patch: Patch, currentState: State) -> State
+  ```
+
+  ## Listen to state changes
+
+  ```js
+  session.on('change', listener);
+  session.off('change', listener);
+  ```
+
+*/
 
 var t = require('tcomb');
 var debug = require('debug')('Session');
@@ -259,18 +330,56 @@ function Session(opts) {
     return state;
   }
 
-  Object.freeze(t.util.mixin(this, {
+  Object.freeze({
     State: State,
     Patch: Patch,
     getState: getState,
     patch: patch,
     on: emitter.on.bind(emitter),
     off: emitter.off.bind(emitter)
-  }));
+  });
 }
 
 module.exports = Session;
-},{"debug":"/Users/giulio/Documents/Projects/github/tom/node_modules/debug/browser.js","eventemitter3":"/Users/giulio/Documents/Projects/github/tom/node_modules/eventemitter3/index.js","tcomb":"/Users/giulio/Documents/Projects/github/tom/node_modules/tcomb/index.js"}],"/Users/giulio/Documents/Projects/github/tom/node_modules/debug/browser.js":[function(require,module,exports){
+},{"debug":"/Users/giulio/Documents/Projects/github/tom/node_modules/debug/browser.js","eventemitter3":"/Users/giulio/Documents/Projects/github/tom/node_modules/eventemitter3/index.js","tcomb":"/Users/giulio/Documents/Projects/github/tom/node_modules/tcomb/index.js"}],"/Users/giulio/Documents/Projects/github/tom/lib/matcher.js":[function(require,module,exports){
+'use strict';
+
+var pathToRegexp = require('path-to-regexp');
+
+function getParams(match, keys) {
+
+  var params = {};
+
+  for (var i = 0, len = keys.length ; i < len ; i++) {
+    var key = keys[i];
+    var param = match[i + 1];
+    if (!param) { continue; }
+    params[key.name] = decodeURIComponent(param);
+    if (key.repeat) {
+      params[key.name] = params[key.name].split(key.delimiter);
+    }
+  }
+
+  return params;
+}
+
+// matcher: path: t.Str -> t.func(path: t.Str, params: t.Obj | t.Bool)
+function matcher(path) {
+
+  var keys = [];
+  var regexp = pathToRegexp(path, keys);
+
+  return function match(path) {
+    var match = regexp.exec(path);
+    if (!match) {
+      return false;
+    }
+    return getParams(match, keys);
+  };
+}
+
+module.exports = matcher;
+},{"path-to-regexp":"/Users/giulio/Documents/Projects/github/tom/node_modules/path-to-regexp/index.js"}],"/Users/giulio/Documents/Projects/github/tom/node_modules/debug/browser.js":[function(require,module,exports){
 
 /**
  * This is the web browser implementation of `debug()`.
@@ -20326,75 +20435,104 @@ var Todo = t.struct({
   completed: t.Bool
 });
 
-var State = t.list(Todo);
+var State = t.struct({
+  route: t.Str,
+  todos: t.list(Todo)
+}, 'State');
 
-State.addTodo = function (state, todo) {
-  return State.update(state, {'$push': [todo]});
+State.setRoute = function (route) {
+  state = State.update(state, {route: {'$set': route}});
 };
 
-State.removeTodo = function (state, id) {
-  return State(state.filter(function (todo) {
+State.addTodo = function (todo) {
+  state = State.update(state, {todos: {'$push': [todo]}});
+};
+
+State.removeTodo = function (id) {
+  var todos = state.todos.filter(function (todo) {
     return todo.id !== id;
-  }));
-};
-
-State.updateTodo = function (state, id, spec) {
-  var index;
-  state.forEach(function (todo, i) {
-    if (todo.id === id) {
-      index = i;
-    }
   });
-  var todo = Todo.update(state[index], spec);
-  return State.update(state, {'$splice': [[index, 1, todo]]});
+  state = State.update(state, {todos: {'$set': todos}});
 };
 
-var state = State([]);
+State.getTodoIndex = function (id) {
+  var index;
+  for (var i = 0, len = state.todos.length ; i < len ; i++ ) {
+    if (state.todos[i].id === id) {
+      index = i;
+      break;
+    }
+  }
+  return index;
+};
 
+State.toggleTodo = function (id, completed) {
+  var index = State.getTodoIndex(id);
+  var todo = Todo.update(state.todos[index], {completed: {'$set': completed}});
+  state = State.update(state, {todos: {'$splice': [[index, 1, todo]]}})
+};
 
+var state = State({
+  route: location.hash.substr(1) || '/all',
+  todos: []
+});
 
 //
 // app
 //
 
-var app = new t.om.App();
+var matcher = require('../lib/matcher');
+var app = new t.om.App(matcher);
 
 app.route({
-  method: 'GET',
-  path: '/all',
+  method: 'GET', path: '/all',
   handler: function (ctx) {
+    State.setRoute(ctx.req.url);
     ctx.res.render(React.createElement(App, {state: state}));
   }
 });
 
 app.route({
-  method: 'POST',
-  path: '/todo',
+  method: 'GET', path: '/active',
   handler: function (ctx) {
-    state = State.addTodo(state, new Todo({
+    State.setRoute(ctx.req.url);
+    ctx.res.render(React.createElement(App, {state: state}));
+  }
+});
+
+app.route({
+  method: 'GET', path: '/completed',
+  handler: function (ctx) {
+    State.setRoute(ctx.req.url);
+    ctx.res.render(React.createElement(App, {state: state}));
+  }
+});
+
+app.route({
+  method: 'POST', path: '/todo',
+  handler: function (ctx) {
+    State.addTodo(new Todo({
       id: util.uuid(),
       title: ctx.req.body.title,
       completed: false
     }));
-    ctx.res.redirect('/all');
+    ctx.res.redirect(state.route);
   }
 });
 
 app.route({
-  method: 'POST',
-  path: '/todo/:id/remove',
+  method: 'POST', path: '/todo/:id',
   handler: function (ctx) {
-    state = State.removeTodo(state, ctx.params.id);
-    ctx.res.redirect('/all');
+    State.toggleTodo(ctx.params.id, ctx.req.body.completed);
+    ctx.res.redirect(state.route);
   }
 });
 
 app.route({
-  method: 'POST',
-  path: '/todo/:id',
+  method: 'POST', path: '/todo/:id/remove',
   handler: function (ctx) {
-    state = State.updateTodo(state, ctx.params.id, ctx.req.body);
-    ctx.res.redirect('/all');
+    State.removeTodo(ctx.params.id);
+    ctx.res.redirect(state.route);
   }
 });
 
@@ -20411,8 +20549,8 @@ var App = React.createClass({displayName: "App",
     }
   },
 
-  toggle: function (id, evt) {
-    app.post('/todo/' + id, {completed: {'$set': evt.target.checked}});
+  toggleTodo: function (id, evt) {
+    app.post('/todo/' + id, {completed: evt.target.checked});
   },
 
   remove: function (id) {
@@ -20420,6 +20558,23 @@ var App = React.createClass({displayName: "App",
   },
 
   render: function () {
+
+    var route = this.props.state.route;
+    var todos = this.props.state.todos;
+
+    // stats
+    var len = todos.length;
+    var nrCompleted = todos.reduce(function (acc, todo) {
+      return acc + (todo.completed ? 1 : 0);
+    }, 0);
+    var nrLeft = len - nrCompleted;
+
+    // filter
+    if (route !== '/all') {
+      todos = todos.filter(function (todo) {
+        return todo.completed === (route !== '/active');
+      });
+    }
 
     var header = (
       React.createElement("header", {id: "header"}, 
@@ -20433,12 +20588,12 @@ var App = React.createClass({displayName: "App",
         React.createElement("input", {id: "toggle-all", type: "checkbox"}), 
         React.createElement("ul", {id: "todo-list"}, 
           
-            this.props.state.map(function (todo) {
+            todos.map(function (todo) {
               var id = todo.id;
               return (
                 React.createElement("li", {key: todo.id, ref: id, className: todo.completed ? 'completed' : null}, 
                   React.createElement("div", {className: "view"}, 
-                    React.createElement("input", {className: "toggle", type: "checkbox", onChange: this.toggle.bind(this, id)}), 
+                    React.createElement("input", {className: "toggle", type: "checkbox", onChange: this.toggleTodo.bind(this, id)}), 
                     React.createElement("label", null, todo.title), 
                     React.createElement("button", {className: "destroy", onClick: this.remove.bind(this, id)})
                   ), 
@@ -20452,32 +20607,37 @@ var App = React.createClass({displayName: "App",
     );
 
     // FIXME
-    var footer = (
-      React.createElement("footer", {id: "footer"}, 
-        React.createElement("span", {id: "todo-count"}, 
-          React.createElement("strong", null, "1"), 
-          React.createElement("span", null, " "), 
-          React.createElement("span", null, "item"), 
-          React.createElement("span", null, " left")
-        ), 
-        React.createElement("ul", {id: "filters"}, 
-          React.createElement("li", null, 
-            React.createElement("a", {href: "#/", className: "selected"}, "All")
+    var footer = null;
+    if (len) {
+      footer = (
+        React.createElement("footer", {id: "footer"}, 
+          React.createElement("span", {id: "todo-count"}, 
+            React.createElement("strong", null, nrLeft), 
+            React.createElement("span", null, " "), 
+            React.createElement("span", null, "item"), 
+            React.createElement("span", null, " left")
           ), 
-          React.createElement("span", null, " "), 
-          React.createElement("li", null, 
-            React.createElement("a", {href: "#/active"}, "Active")
+          React.createElement("ul", {id: "filters"}, 
+            React.createElement("li", null, 
+              React.createElement("a", {href: "#/all", className: route === '/all' ? 'selected' : null}, "All")
+            ), 
+            React.createElement("span", null, " "), 
+            React.createElement("li", null, 
+              React.createElement("a", {href: "#/active", className: route === '/active' ? 'selected' : null}, "Active")
+            ), 
+            React.createElement("span", null, " "), 
+            React.createElement("li", null, 
+              React.createElement("a", {href: "#/completed", className: route === '/completed' ? 'selected' : null}, "Completed")
+            )
           ), 
-          React.createElement("span", null, " "), 
-          React.createElement("li", null, 
-            React.createElement("a", {href: "#/completed"}, "Completed")
-          )
-        ), 
-        React.createElement("button", {id: "clear-completed"}, 
-          React.createElement("span", null, "Clear completed ("), React.createElement("span", null, "1"), React.createElement("span", null, ")")
+          nrCompleted ?
+            React.createElement("button", {id: "clear-completed"}, 
+              React.createElement("span", null, "Clear completed ("), React.createElement("span", null, nrCompleted), React.createElement("span", null, ")")
+            ) : null
+          
         )
-      )
-    );
+      );
+    }
 
     return (
       React.createElement("div", null, 
@@ -20491,19 +20651,25 @@ var App = React.createClass({displayName: "App",
 });
 
 // start the app
-app.run(function (handler) {
-  React.render(handler, document.getElementById('todoapp'));
+app.run(function (renderable) {
+  React.render(renderable, document.getElementById('todoapp'));
 });
 
-// make a request
-app.get('/all');
+window.onhashchange = function () {
+  app.get(location.hash.substr(1));
+};
 
+if (location.hash) {
+  window.onhashchange();
+} else {
+  location.hash = '/all';
+}
 //t.om.debug.enable('*');
 //t.om.debug.disable();
 
 
 
-},{"../":"/Users/giulio/Documents/Projects/github/tom/index.js","./util":"/Users/giulio/Documents/Projects/github/tom/todomvc/util.js","react":"/Users/giulio/Documents/Projects/github/tom/node_modules/react/react.js"}],"/Users/giulio/Documents/Projects/github/tom/todomvc/util.js":[function(require,module,exports){
+},{"../":"/Users/giulio/Documents/Projects/github/tom/index.js","../lib/matcher":"/Users/giulio/Documents/Projects/github/tom/lib/matcher.js","./util":"/Users/giulio/Documents/Projects/github/tom/todomvc/util.js","react":"/Users/giulio/Documents/Projects/github/tom/node_modules/react/react.js"}],"/Users/giulio/Documents/Projects/github/tom/todomvc/util.js":[function(require,module,exports){
 'use strict';
 
 function uuid() {
