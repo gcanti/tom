@@ -107,6 +107,29 @@ if (location.hash) {
 }
 ```
 
+# Nested uis
+
+```js
+// just add the nested uis in reverse order
+ctx.views = ctx.views || [];
+ctx.views = ctx.views.unshif(<Handler />);
+
+// later...
+var Renderable = ctx.views.reduce(function (nested, wrapper) {
+  return wrapper(nested);
+}, leaf);
+app.render(Renderable);
+```
+
+# Server side
+
+```js
+// just define a different onRender
+app.run(function (renderable) {
+  // render html page using React.renderToString(renderable);
+});
+```
+
 # API
 
 ## Request
