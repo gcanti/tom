@@ -1,139 +1,23 @@
 'use strict';
 
 var React = require('react');
-var t = require('../');
-var util = require('./util');
 
-//
-// domain
-//
-
-var Todo = t.struct({
-  id: t.Str,
-  title: t.Str,
-  completed: t.Bool
-});
-
-var State = t.struct({
-  route: t.Str,
-  todos: t.list(Todo)
-}, 'State');
-
-State.setRoute = function (route) {
-  state = State.update(state, {route: {'$set': route}});
-};
-
-State.addTodo = function (todo) {
-  state = State.update(state, {todos: {'$push': [todo]}});
-};
-
-State.removeTodo = function (id) {
-  var todos = state.todos.filter(function (todo) {
-    return todo.id !== id;
-  });
-  state = State.update(state, {todos: {'$set': todos}});
-};
-
-State.getTodoIndex = function (id) {
-  var index;
-  for (var i = 0, len = state.todos.length ; i < len ; i++ ) {
-    if (state.todos[i].id === id) {
-      index = i;
-      break;
-    }
-  }
-  return index;
-};
-
-State.toggleTodo = function (id, completed) {
-  var index = State.getTodoIndex(id);
-  var todo = Todo.update(state.todos[index], {completed: {'$set': completed}});
-  state = State.update(state, {todos: {'$splice': [[index, 1, todo]]}})
-};
-
-var state = State({
-  route: location.hash.substr(1) || '/all',
-  todos: []
-});
-
-//
-// app
-//
-
-var matcher = require('../lib/matcher');
-var app = new t.om.App(matcher);
-
-app.route({
-  method: 'GET', path: '/all',
-  handler: function (ctx) {
-    State.setRoute(ctx.req.url);
-    ctx.res.render(<App state={state} />);
-  }
-});
-
-app.route({
-  method: 'GET', path: '/active',
-  handler: function (ctx) {
-    State.setRoute(ctx.req.url);
-    ctx.res.render(<App state={state} />);
-  }
-});
-
-app.route({
-  method: 'GET', path: '/completed',
-  handler: function (ctx) {
-    State.setRoute(ctx.req.url);
-    ctx.res.render(<App state={state} />);
-  }
-});
-
-app.route({
-  method: 'POST', path: '/todo',
-  handler: function (ctx) {
-    State.addTodo(new Todo({
-      id: util.uuid(),
-      title: ctx.req.body.title,
-      completed: false
-    }));
-    ctx.res.redirect(state.route);
-  }
-});
-
-app.route({
-  method: 'POST', path: '/todo/:id',
-  handler: function (ctx) {
-    State.toggleTodo(ctx.params.id, ctx.req.body.completed);
-    ctx.res.redirect(state.route);
-  }
-});
-
-app.route({
-  method: 'POST', path: '/todo/:id/remove',
-  handler: function (ctx) {
-    State.removeTodo(ctx.params.id);
-    ctx.res.redirect(state.route);
-  }
-});
-
-//
-// ui
-//
 var App = React.createClass({
 
   add: function (evt) {
     var title = this.refs.input.getDOMNode().value.trim();
     if (title) {
-      app.post('/todo', {title: title});
+      this.props.router.post('/todo', {title: title});
       this.refs.input.getDOMNode().value = '';
     }
   },
 
   toggleTodo: function (id, evt) {
-    app.post('/todo/' + id, {completed: evt.target.checked});
+    this.props.router.post('/todo/' + id, {completed: evt.target.checked});
   },
 
   remove: function (id) {
-    app.post('/todo/' + id + '/remove');
+    this.props.router.post('/todo/' + id + '/remove');
   },
 
   render: function () {
@@ -229,21 +113,4 @@ var App = React.createClass({
 
 });
 
-// start the app
-app.run(function (renderable) {
-  React.render(renderable, document.getElementById('todoapp'));
-});
-
-window.onhashchange = function () {
-  app.get(location.hash.substr(1));
-};
-
-if (location.hash) {
-  window.onhashchange();
-} else {
-  location.hash = '/all';
-}
-//t.om.debug.enable('*');
-//t.om.debug.disable();
-
-
+module.exports = App;

@@ -3,15 +3,18 @@
   <head>
     <meta charset="utf-8">
     <title>tom • TodoMVC</title>
-    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="assets/css/base.css">
   </head>
   <body>
-    <section id="todoapp"></section>
+    <section id="todoapp"><%= ui %></section>
     <footer id="info">
       <p>Double-click to edit a todo</p>
       <p>Created by <a href="http://github.com/gcanti/">gcanti</a></p>
       <p>Part of <a href="http://todomvc.com">TodoMVC</a></p>
     </footer>
-    <script src="todomvc.js"></script>
+    <script>
+    var state = <%= state %>;
+    </script>
+    <script src="assets/bundle.js"></script>
   </body>
 </html>

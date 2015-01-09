@@ -1,8 +1,7 @@
 var t = require('tcomb');
 
 t.om = {
-  App: require('./lib/App'),
-  debug: require('debug')
+  Router: require('./lib/Router')
 };
 
 module.exports = t;

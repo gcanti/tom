@@ -2,7 +2,7 @@ A complete routing library <del>for React</del>.
 
 # Features
 
-- express-like routing concept
+- hapijs-like routing concept
 - runs both on browser and on server
 - configurable state management
 - configurable ui target (React, ...)
@@ -34,7 +34,7 @@ var State = t.list(Todo);
 var state = State([]);
 
 //
-// express-like routing concept
+// hapijs-like routing concept
 //
 
 var app = new t.om.App();
@@ -112,7 +112,7 @@ if (location.hash) {
 ```js
 // just add the nested uis in reverse order
 ctx.views = ctx.views || [];
-ctx.views = ctx.views.unshif(<Handler />);
+ctx.views = ctx.views.unshift(<Handler />);
 
 // later...
 var Renderable = ctx.views.reduce(function (nested, wrapper) {

@@ -2,80 +2,24 @@
 var t = require('tcomb');
 
 t.om = {
-  App: require('./lib/App'),
-  debug: require('debug')
+  Router: require('./lib/Router')
 };
 
 module.exports = t;
 
-},{"./lib/App":"/Users/giulio/Documents/Projects/github/tom/lib/App.js","debug":"/Users/giulio/Documents/Projects/github/tom/node_modules/debug/browser.js","tcomb":"/Users/giulio/Documents/Projects/github/tom/node_modules/tcomb/index.js"}],"/Users/giulio/Documents/Projects/github/tom/lib/App.js":[function(require,module,exports){
-'use strict';
-
-var t = require('tcomb');
-var debug = require('debug')('App');
-var Session = require('./Session');
-var Router = require('./Router');
-var Request = require('./Request');
-var Response = require('./Response');
-var assert = t.assert;
-
-function App(matcher) {
-  Router.call(this, matcher);
-  this.started = false;
-  this.res = new Response({
-    redirect: this.redirect.bind(this),
-    render: this.render.bind(this)
-  });
-}
-
-t.util.mixin(App.prototype, Router.prototype);
-
-App.prototype.redirect = function (url) {
-  debug('redirecting to `%s`', url);
-  return this.get(url);
-};
-
-App.prototype.render = function (renderable) {
-  debug('rendering');
-  this.onRender(renderable);
-  return this;
-};
-
-App.prototype.get = function (url) {
-  var req = Request.of('GET', url);
-  debug(req + '');
-  return this.dispatch(req, this.res);
-};
-
-App.prototype.post = function (url, body) {
-  var req = Request.of('POST', url, body);
-  debug(req + '');
-  return this.dispatch(req, this.res);
-};
-
-App.prototype.run = function (onRender) {
-  assert(t.Func.is(onRender), 'Invalid argument `onRender` supplied to run()');
-  this.onRender = onRender;
-  this.running = true;
-  debug('running');
-  return this;
-};
-
-module.exports = App;
-},{"./Request":"/Users/giulio/Documents/Projects/github/tom/lib/Request.js","./Response":"/Users/giulio/Documents/Projects/github/tom/lib/Response.js","./Router":"/Users/giulio/Documents/Projects/github/tom/lib/Router.js","./Session":"/Users/giulio/Documents/Projects/github/tom/lib/Session.js","debug":"/Users/giulio/Documents/Projects/github/tom/node_modules/debug/browser.js","tcomb":"/Users/giulio/Documents/Projects/github/tom/node_modules/tcomb/index.js"}],"/Users/giulio/Documents/Projects/github/tom/lib/Context.js":[function(require,module,exports){
+},{"./lib/Router":"/Users/giulio/Documents/Projects/github/tom/lib/Router.js","tcomb":"/Users/giulio/Documents/Projects/github/tom/node_modules/tcomb/index.js"}],"/Users/giulio/Documents/Projects/github/tom/lib/Context.js":[function(require,module,exports){
 'use strict';
 
 var Request = require('./Request');
-var Response = require('./Response');
 
 function Context(req, res, next) {
   this.req = new Request(req);
-  this.res = new Response(res);
   this.next = next;
+  this.params = {};
 }
 
 module.exports = Context;
-},{"./Request":"/Users/giulio/Documents/Projects/github/tom/lib/Request.js","./Response":"/Users/giulio/Documents/Projects/github/tom/lib/Response.js"}],"/Users/giulio/Documents/Projects/github/tom/lib/Method.js":[function(require,module,exports){
+},{"./Request":"/Users/giulio/Documents/Projects/github/tom/lib/Request.js"}],"/Users/giulio/Documents/Projects/github/tom/lib/Method.js":[function(require,module,exports){
 'use strict';
 
 var t = require('tcomb');
@@ -116,26 +60,14 @@ Request.of = function (method, url, body) {
 };
 
 module.exports = Request;
-},{"./Method":"/Users/giulio/Documents/Projects/github/tom/lib/Method.js","querystring":"/usr/local/lib/node_modules/watchify/node_modules/browserify/node_modules/querystring-es3/index.js","tcomb":"/Users/giulio/Documents/Projects/github/tom/node_modules/tcomb/index.js","url":"/usr/local/lib/node_modules/watchify/node_modules/browserify/node_modules/url/url.js"}],"/Users/giulio/Documents/Projects/github/tom/lib/Response.js":[function(require,module,exports){
+},{"./Method":"/Users/giulio/Documents/Projects/github/tom/lib/Method.js","querystring":"/usr/local/lib/node_modules/watchify/node_modules/browserify/node_modules/querystring-es3/index.js","tcomb":"/Users/giulio/Documents/Projects/github/tom/node_modules/tcomb/index.js","url":"/usr/local/lib/node_modules/watchify/node_modules/browserify/node_modules/url/url.js"}],"/Users/giulio/Documents/Projects/github/tom/lib/Router.js":[function(require,module,exports){
 'use strict';
 
 var t = require('tcomb');
-
-var Response = t.struct({
-  redirect: t.Func,
-  render: t.Func
-}, 'Response');
-
-module.exports = Response;
-},{"tcomb":"/Users/giulio/Documents/Projects/github/tom/node_modules/tcomb/index.js"}],"/Users/giulio/Documents/Projects/github/tom/lib/Router.js":[function(require,module,exports){
-'use strict';
-
-var t = require('tcomb');
-var debug = require('debug')('Router');
-var Request = require('./Request');
-var Response = require('./Response');
-var Method = require('./Method');
 var Context = require('./Context');
+var debug = require('debug')('Router');
+var Method = require('./Method');
+var Request = require('./Request');
 
 var Params = t.dict(t.Str, t.Type, 'Params');
 
@@ -157,12 +89,13 @@ var Layer = t.struct({
 }, 'Layer');
 
 function Router(matcher) {
-  // inject the actual implementation
   this.matcher = matcher;
   this.layers = {};
 }
 
-Router.prototype.route = function(route) {
+Router.prototype.debug = require('debug');
+
+Router.prototype.route = function (route) {
 
   route = new Route(route);
 
@@ -180,16 +113,15 @@ Router.prototype.getLayers = function(method) {
   return this.layers[method] ? this.layers[method].slice() : [];
 };
 
-Router.prototype.dispatch = function(req, res) {
+Router.prototype.dispatch = function(req) {
 
   req = new Request(req);
-  res = new Response(res);
 
   debug('dispatching %s', req + '');
   var layers = this.getLayers(req.method);
   debug('%s candidate layer(s) found', layers.length);
 
-  var ctx = new Context(req, res, next);
+  var ctx = new Context(req, next);
 
   function next() {
     if (!layers.length) {
@@ -210,138 +142,20 @@ Router.prototype.dispatch = function(req, res) {
   return this;
 };
 
+Router.prototype.get = function (url) {
+  var req = Request.of('GET', url);
+  debug(req + '');
+  return this.dispatch(req, this.res);
+};
+
+Router.prototype.post = function (url, body) {
+  var req = Request.of('POST', url, body);
+  debug(req + '');
+  return this.dispatch(req, this.res);
+};
+
 module.exports = Router;
-},{"./Context":"/Users/giulio/Documents/Projects/github/tom/lib/Context.js","./Method":"/Users/giulio/Documents/Projects/github/tom/lib/Method.js","./Request":"/Users/giulio/Documents/Projects/github/tom/lib/Request.js","./Response":"/Users/giulio/Documents/Projects/github/tom/lib/Response.js","debug":"/Users/giulio/Documents/Projects/github/tom/node_modules/debug/browser.js","tcomb":"/Users/giulio/Documents/Projects/github/tom/node_modules/tcomb/index.js"}],"/Users/giulio/Documents/Projects/github/tom/lib/Session.js":[function(require,module,exports){
-'use strict';
-
-/*
-
-  # Session
-
-  The entire app state SHOULD be immutable and contained in one single place (see om) called *(user) session*.
-
-  ```js
-  var t = require('tcomb');
-  var Session = require('tom/Session');
-
-  // developers MUST define this
-  var State = t.struct({
-    ...
-  });
-
-  var session = new Session({
-    State: State, // : Type, state constructor (required)
-    initialState: {},    // : Obj, initial state (required)
-    Patch: Patch, // : Type, patch constructor (optional)
-    merge: ...    // : Func, patches merge strategy (optional)
-  });
-  ```
-
-  ## Get the state
-
-  ```js
-  session.getState() -> State
-  ```
-
-  ## Update the state
-
-  ```js
-  // default constructor
-  var Patch = t.struct({
-    // the current state from the client POV
-    token: t.maybe(State),
-    // an acceptable argument for State.update
-    spec: t.Obj
-  });
-
-  session.patch(patch: Patch, currentState: State) -> State
-  ```
-
-  - if `patch.token === currentState` the patch will be applied
-  - if `merge` exists, will be called
-  - throws an error
-
-  ### merge(patch, currentState)
-
-  Developers SHOULD implement:
-
-  ```js
-  merge(patch: Patch, currentState: State) -> State
-  ```
-
-  ## Listen to state changes
-
-  ```js
-  session.on('change', listener);
-  session.off('change', listener);
-  ```
-
-*/
-
-var t = require('tcomb');
-var debug = require('debug')('Session');
-var EventEmitter = require('eventemitter3');
-
-function getDeafultPatch(State) {
-  debug('using default `Patch` constructor');
-  return t.struct({
-    token: t.maybe(State),
-    spec: t.Obj
-  }, 'Patch');
-}
-
-function Session(opts) {
-
-  var State = t.Type(opts.State);
-  var Patch = t.maybe(t.Type)(opts.Patch) || getDeafultPatch(State);
-  var merge = t.maybe(t.Func)(opts.merge);
-  var emitter = new EventEmitter();
-
-  // keep the state private
-  var state = t.maybe(State)(opts.initialState);
-
-  function getState() {
-    return state;
-  }
-
-  function patch(patch) {
-
-    patch = new Patch(patch);
-
-    debug('patching %j', patch.spec);
-
-    var nextState;
-    if (patch.token === state) {
-      nextState = State.update(state, patch.spec);
-      debug('patch succeded');
-    } else if (merge) {
-      debug('merging');
-      nextState = new State(merge(patch, state));
-      debug('merge succeded');
-    } else {
-      throw new Error('patch failure: no merge algorithm specified');
-    }
-
-    if (nextState !== state) {
-      state = nextState;
-      emitter.emit('change', state);
-    }
-
-    return state;
-  }
-
-  Object.freeze({
-    State: State,
-    Patch: Patch,
-    getState: getState,
-    patch: patch,
-    on: emitter.on.bind(emitter),
-    off: emitter.off.bind(emitter)
-  });
-}
-
-module.exports = Session;
-},{"debug":"/Users/giulio/Documents/Projects/github/tom/node_modules/debug/browser.js","eventemitter3":"/Users/giulio/Documents/Projects/github/tom/node_modules/eventemitter3/index.js","tcomb":"/Users/giulio/Documents/Projects/github/tom/node_modules/tcomb/index.js"}],"/Users/giulio/Documents/Projects/github/tom/lib/matcher.js":[function(require,module,exports){
+},{"./Context":"/Users/giulio/Documents/Projects/github/tom/lib/Context.js","./Method":"/Users/giulio/Documents/Projects/github/tom/lib/Method.js","./Request":"/Users/giulio/Documents/Projects/github/tom/lib/Request.js","debug":"/Users/giulio/Documents/Projects/github/tom/node_modules/debug/browser.js","tcomb":"/Users/giulio/Documents/Projects/github/tom/node_modules/tcomb/index.js"}],"/Users/giulio/Documents/Projects/github/tom/lib/matcher.js":[function(require,module,exports){
 'use strict';
 
 var pathToRegexp = require('path-to-regexp');
@@ -850,237 +664,6 @@ function plural(ms, n, name) {
   if (ms < n * 1.5) return Math.floor(ms / n) + ' ' + name;
   return Math.ceil(ms / n) + ' ' + name + 's';
 }
-
-},{}],"/Users/giulio/Documents/Projects/github/tom/node_modules/eventemitter3/index.js":[function(require,module,exports){
-'use strict';
-
-/**
- * Representation of a single EventEmitter function.
- *
- * @param {Function} fn Event handler to be called.
- * @param {Mixed} context Context for function execution.
- * @param {Boolean} once Only emit once
- * @api private
- */
-function EE(fn, context, once) {
-  this.fn = fn;
-  this.context = context;
-  this.once = once || false;
-}
-
-/**
- * Minimal EventEmitter interface that is molded against the Node.js
- * EventEmitter interface.
- *
- * @constructor
- * @api public
- */
-function EventEmitter() { /* Nothing to set */ }
-
-/**
- * Holds the assigned EventEmitters by name.
- *
- * @type {Object}
- * @private
- */
-EventEmitter.prototype._events = undefined;
-
-/**
- * Return a list of assigned event listeners.
- *
- * @param {String} event The events that should be listed.
- * @returns {Array}
- * @api public
- */
-EventEmitter.prototype.listeners = function listeners(event) {
-  if (!this._events || !this._events[event]) return [];
-  if (this._events[event].fn) return [this._events[event].fn];
-
-  for (var i = 0, l = this._events[event].length, ee = new Array(l); i < l; i++) {
-    ee[i] = this._events[event][i].fn;
-  }
-
-  return ee;
-};
-
-/**
- * Emit an event to all registered event listeners.
- *
- * @param {String} event The name of the event.
- * @returns {Boolean} Indication if we've emitted an event.
- * @api public
- */
-EventEmitter.prototype.emit = function emit(event, a1, a2, a3, a4, a5) {
-  if (!this._events || !this._events[event]) return false;
-
-  var listeners = this._events[event]
-    , len = arguments.length
-    , args
-    , i;
-
-  if ('function' === typeof listeners.fn) {
-    if (listeners.once) this.removeListener(event, listeners.fn, true);
-
-    switch (len) {
-      case 1: return listeners.fn.call(listeners.context), true;
-      case 2: return listeners.fn.call(listeners.context, a1), true;
-      case 3: return listeners.fn.call(listeners.context, a1, a2), true;
-      case 4: return listeners.fn.call(listeners.context, a1, a2, a3), true;
-      case 5: return listeners.fn.call(listeners.context, a1, a2, a3, a4), true;
-      case 6: return listeners.fn.call(listeners.context, a1, a2, a3, a4, a5), true;
-    }
-
-    for (i = 1, args = new Array(len -1); i < len; i++) {
-      args[i - 1] = arguments[i];
-    }
-
-    listeners.fn.apply(listeners.context, args);
-  } else {
-    var length = listeners.length
-      , j;
-
-    for (i = 0; i < length; i++) {
-      if (listeners[i].once) this.removeListener(event, listeners[i].fn, true);
-
-      switch (len) {
-        case 1: listeners[i].fn.call(listeners[i].context); break;
-        case 2: listeners[i].fn.call(listeners[i].context, a1); break;
-        case 3: listeners[i].fn.call(listeners[i].context, a1, a2); break;
-        default:
-          if (!args) for (j = 1, args = new Array(len -1); j < len; j++) {
-            args[j - 1] = arguments[j];
-          }
-
-          listeners[i].fn.apply(listeners[i].context, args);
-      }
-    }
-  }
-
-  return true;
-};
-
-/**
- * Register a new EventListener for the given event.
- *
- * @param {String} event Name of the event.
- * @param {Functon} fn Callback function.
- * @param {Mixed} context The context of the function.
- * @api public
- */
-EventEmitter.prototype.on = function on(event, fn, context) {
-  var listener = new EE(fn, context || this);
-
-  if (!this._events) this._events = {};
-  if (!this._events[event]) this._events[event] = listener;
-  else {
-    if (!this._events[event].fn) this._events[event].push(listener);
-    else this._events[event] = [
-      this._events[event], listener
-    ];
-  }
-
-  return this;
-};
-
-/**
- * Add an EventListener that's only called once.
- *
- * @param {String} event Name of the event.
- * @param {Function} fn Callback function.
- * @param {Mixed} context The context of the function.
- * @api public
- */
-EventEmitter.prototype.once = function once(event, fn, context) {
-  var listener = new EE(fn, context || this, true);
-
-  if (!this._events) this._events = {};
-  if (!this._events[event]) this._events[event] = listener;
-  else {
-    if (!this._events[event].fn) this._events[event].push(listener);
-    else this._events[event] = [
-      this._events[event], listener
-    ];
-  }
-
-  return this;
-};
-
-/**
- * Remove event listeners.
- *
- * @param {String} event The event we want to remove.
- * @param {Function} fn The listener that we need to find.
- * @param {Boolean} once Only remove once listeners.
- * @api public
- */
-EventEmitter.prototype.removeListener = function removeListener(event, fn, once) {
-  if (!this._events || !this._events[event]) return this;
-
-  var listeners = this._events[event]
-    , events = [];
-
-  if (fn) {
-    if (listeners.fn && (listeners.fn !== fn || (once && !listeners.once))) {
-      events.push(listeners);
-    }
-    if (!listeners.fn) for (var i = 0, length = listeners.length; i < length; i++) {
-      if (listeners[i].fn !== fn || (once && !listeners[i].once)) {
-        events.push(listeners[i]);
-      }
-    }
-  }
-
-  //
-  // Reset the array, or remove it completely if we have no more listeners.
-  //
-  if (events.length) {
-    this._events[event] = events.length === 1 ? events[0] : events;
-  } else {
-    delete this._events[event];
-  }
-
-  return this;
-};
-
-/**
- * Remove all listeners or only the listeners for the specified event.
- *
- * @param {String} event The event want to remove all listeners for.
- * @api public
- */
-EventEmitter.prototype.removeAllListeners = function removeAllListeners(event) {
-  if (!this._events) return this;
-
-  if (event) delete this._events[event];
-  else this._events = {};
-
-  return this;
-};
-
-//
-// Alias methods names because people roll like that.
-//
-EventEmitter.prototype.off = EventEmitter.prototype.removeListener;
-EventEmitter.prototype.addListener = EventEmitter.prototype.on;
-
-//
-// This function doesn't apply anymore.
-//
-EventEmitter.prototype.setMaxListeners = function setMaxListeners() {
-  return this;
-};
-
-//
-// Expose the module.
-//
-EventEmitter.EventEmitter = EventEmitter;
-EventEmitter.EventEmitter2 = EventEmitter;
-EventEmitter.EventEmitter3 = EventEmitter;
-
-//
-// Expose the module.
-//
-module.exports = EventEmitter;
 
 },{}],"/Users/giulio/Documents/Projects/github/tom/node_modules/path-to-regexp/index.js":[function(require,module,exports){
 var isArray = require('isarray');
@@ -20418,143 +20001,55 @@ module.exports = require('./lib/React');
   };
 }));
 
-},{}],"/Users/giulio/Documents/Projects/github/tom/todomvc/todomvc.jsx":[function(require,module,exports){
+},{}],"/Users/giulio/Documents/Projects/github/tom/todomvc/index.jsx":[function(require,module,exports){
 'use strict';
 
 var React = require('react');
-var t = require('../');
-var util = require('./util');
+var router = require('./lib/router.jsx');
 
-//
-// domain
-//
+router.state = require('./lib/state')(state);
 
-var Todo = t.struct({
-  id: t.Str,
-  title: t.Str,
-  completed: t.Bool
-});
-
-var State = t.struct({
-  route: t.Str,
-  todos: t.list(Todo)
-}, 'State');
-
-State.setRoute = function (route) {
-  state = State.update(state, {route: {'$set': route}});
+router.render = function (renderable) {
+  React.render(renderable, document.getElementById('todoapp'));
 };
 
-State.addTodo = function (todo) {
-  state = State.update(state, {todos: {'$push': [todo]}});
+window.onhashchange = function () {
+  router.get(location.hash.substr(1));
 };
 
-State.removeTodo = function (id) {
-  var todos = state.todos.filter(function (todo) {
-    return todo.id !== id;
-  });
-  state = State.update(state, {todos: {'$set': todos}});
-};
+// hydrate
+if (location.hash.substr(1) !== state.route) {
+  location.hash = state.route;
+} else {
+  window.onhashchange();
+}
 
-State.getTodoIndex = function (id) {
-  var index;
-  for (var i = 0, len = state.todos.length ; i < len ; i++ ) {
-    if (state.todos[i].id === id) {
-      index = i;
-      break;
-    }
-  }
-  return index;
-};
+router.debug.enable('*');
+//router.debug.disable();
 
-State.toggleTodo = function (id, completed) {
-  var index = State.getTodoIndex(id);
-  var todo = Todo.update(state.todos[index], {completed: {'$set': completed}});
-  state = State.update(state, {todos: {'$splice': [[index, 1, todo]]}})
-};
 
-var state = State({
-  route: location.hash.substr(1) || '/all',
-  todos: []
-});
 
-//
-// app
-//
+},{"./lib/router.jsx":"/Users/giulio/Documents/Projects/github/tom/todomvc/lib/router.jsx","./lib/state":"/Users/giulio/Documents/Projects/github/tom/todomvc/lib/state.js","react":"/Users/giulio/Documents/Projects/github/tom/node_modules/react/react.js"}],"/Users/giulio/Documents/Projects/github/tom/todomvc/lib/components/App.jsx":[function(require,module,exports){
+'use strict';
 
-var matcher = require('../lib/matcher');
-var app = new t.om.App(matcher);
+var React = require('react');
 
-app.route({
-  method: 'GET', path: '/all',
-  handler: function (ctx) {
-    State.setRoute(ctx.req.url);
-    ctx.res.render(React.createElement(App, {state: state}));
-  }
-});
-
-app.route({
-  method: 'GET', path: '/active',
-  handler: function (ctx) {
-    State.setRoute(ctx.req.url);
-    ctx.res.render(React.createElement(App, {state: state}));
-  }
-});
-
-app.route({
-  method: 'GET', path: '/completed',
-  handler: function (ctx) {
-    State.setRoute(ctx.req.url);
-    ctx.res.render(React.createElement(App, {state: state}));
-  }
-});
-
-app.route({
-  method: 'POST', path: '/todo',
-  handler: function (ctx) {
-    State.addTodo(new Todo({
-      id: util.uuid(),
-      title: ctx.req.body.title,
-      completed: false
-    }));
-    ctx.res.redirect(state.route);
-  }
-});
-
-app.route({
-  method: 'POST', path: '/todo/:id',
-  handler: function (ctx) {
-    State.toggleTodo(ctx.params.id, ctx.req.body.completed);
-    ctx.res.redirect(state.route);
-  }
-});
-
-app.route({
-  method: 'POST', path: '/todo/:id/remove',
-  handler: function (ctx) {
-    State.removeTodo(ctx.params.id);
-    ctx.res.redirect(state.route);
-  }
-});
-
-//
-// ui
-//
 var App = React.createClass({displayName: "App",
 
   add: function (evt) {
     var title = this.refs.input.getDOMNode().value.trim();
     if (title) {
-      app.post('/todo', {title: title});
+      this.props.router.post('/todo', {title: title});
       this.refs.input.getDOMNode().value = '';
     }
   },
 
   toggleTodo: function (id, evt) {
-    app.post('/todo/' + id, {completed: evt.target.checked});
+    this.props.router.post('/todo/' + id, {completed: evt.target.checked});
   },
 
   remove: function (id) {
-    app.post('/todo/' + id + '/remove');
+    this.props.router.post('/todo/' + id + '/remove');
   },
 
   render: function () {
@@ -20650,26 +20145,139 @@ var App = React.createClass({displayName: "App",
 
 });
 
-// start the app
-app.run(function (renderable) {
-  React.render(renderable, document.getElementById('todoapp'));
+module.exports = App;
+},{"react":"/Users/giulio/Documents/Projects/github/tom/node_modules/react/react.js"}],"/Users/giulio/Documents/Projects/github/tom/todomvc/lib/router.jsx":[function(require,module,exports){
+'use strict';
+
+var React = require('react');
+var t = require('../../');
+var util = require('./util');
+var matcher = require('../../lib/matcher');
+var App = require('./components/App.jsx');
+var router = new t.om.Router(matcher);
+
+router.route({
+  method: 'GET', path: '/',
+  handler: function () {
+    router.get('/all');
+  }
 });
 
-window.onhashchange = function () {
-  app.get(location.hash.substr(1));
+router.route({
+  method: 'GET', path: '/all',
+  handler: function (ctx) {
+    router.state.setRoute(ctx.req.url);
+    router.render(React.createElement(App, {state: router.state(), router: router}), router.state());
+  }
+});
+
+router.route({
+  method: 'GET', path: '/active',
+  handler: function (ctx) {
+    router.state.setRoute(ctx.req.url);
+    router.render(React.createElement(App, {state: router.state(), router: router}), router.state());
+  }
+});
+
+router.route({
+  method: 'GET', path: '/completed',
+  handler: function (ctx) {
+    router.state.setRoute(ctx.req.url);
+    router.render(React.createElement(App, {state: router.state(), router: router}), router.state());
+  }
+});
+
+router.route({
+  method: 'POST', path: '/todo',
+  handler: function (ctx) {
+    router.state.addTodo({
+      id: util.uuid(),
+      title: ctx.req.body.title,
+      completed: false
+    });
+    router.get(router.state().route);
+  }
+});
+
+router.route({
+  method: 'POST', path: '/todo/:id',
+  handler: function (ctx) {
+    router.state.toggleTodo(ctx.params.id, ctx.req.body.completed);
+    router.get(router.state().route);
+  }
+});
+
+router.route({
+  method: 'POST', path: '/todo/:id/remove',
+  handler: function (ctx) {
+    router.state.removeTodo(ctx.params.id);
+    router.get(router.state().route);
+  }
+});
+
+module.exports = router;
+},{"../../":"/Users/giulio/Documents/Projects/github/tom/index.js","../../lib/matcher":"/Users/giulio/Documents/Projects/github/tom/lib/matcher.js","./components/App.jsx":"/Users/giulio/Documents/Projects/github/tom/todomvc/lib/components/App.jsx","./util":"/Users/giulio/Documents/Projects/github/tom/todomvc/lib/util.js","react":"/Users/giulio/Documents/Projects/github/tom/node_modules/react/react.js"}],"/Users/giulio/Documents/Projects/github/tom/todomvc/lib/state.js":[function(require,module,exports){
+'use strict';
+
+var t = require('../../');
+
+var Todo = t.struct({
+  id: t.Str,
+  title: t.Str,
+  completed: t.Bool
+});
+
+var State = t.struct({
+  route: t.Str,
+  todos: t.list(Todo)
+}, 'State');
+
+var state;
+
+function getState() {
+  return state;
+}
+
+getState.setRoute = function (route) {
+  state = State.update(state, {route: {'$set': route}});
 };
 
-if (location.hash) {
-  window.onhashchange();
-} else {
-  location.hash = '/all';
+getState.addTodo = function (todo) {
+  todo = new Todo(todo);
+  state = State.update(state, {todos: {'$push': [todo]}});
+};
+
+getState.removeTodo = function (id) {
+  var todos = state.todos.filter(function (todo) {
+    return todo.id !== id;
+  });
+  state = State.update(state, {todos: {'$set': todos}});
+};
+
+function getTodoIndex(id) {
+  var index;
+  for (var i = 0, len = state.todos.length ; i < len ; i++ ) {
+    if (state.todos[i].id === id) {
+      index = i;
+      break;
+    }
+  }
+  return index;
 }
-//t.om.debug.enable('*');
-//t.om.debug.disable();
 
+getState.toggleTodo = function (id, completed) {
+  var index = getTodoIndex(id);
+  var todo = Todo.update(state.todos[index], {completed: {'$set': completed}});
+  state = State.update(state, {todos: {'$splice': [[index, 1, todo]]}})
+};
 
+function init(initialState) {
+  state = new State(initialState);
+  return getState;
+}
 
-},{"../":"/Users/giulio/Documents/Projects/github/tom/index.js","../lib/matcher":"/Users/giulio/Documents/Projects/github/tom/lib/matcher.js","./util":"/Users/giulio/Documents/Projects/github/tom/todomvc/util.js","react":"/Users/giulio/Documents/Projects/github/tom/node_modules/react/react.js"}],"/Users/giulio/Documents/Projects/github/tom/todomvc/util.js":[function(require,module,exports){
+module.exports = init;
+},{"../../":"/Users/giulio/Documents/Projects/github/tom/index.js"}],"/Users/giulio/Documents/Projects/github/tom/todomvc/lib/util.js":[function(require,module,exports){
 'use strict';
 
 function uuid() {
@@ -22193,4 +21801,4 @@ function isNullOrUndefined(arg) {
   return  arg == null;
 }
 
-},{"punycode":"/usr/local/lib/node_modules/watchify/node_modules/browserify/node_modules/punycode/punycode.js","querystring":"/usr/local/lib/node_modules/watchify/node_modules/browserify/node_modules/querystring-es3/index.js"}]},{},["/Users/giulio/Documents/Projects/github/tom/todomvc/todomvc.jsx"]);
+},{"punycode":"/usr/local/lib/node_modules/watchify/node_modules/browserify/node_modules/punycode/punycode.js","querystring":"/usr/local/lib/node_modules/watchify/node_modules/browserify/node_modules/querystring-es3/index.js"}]},{},["/Users/giulio/Documents/Projects/github/tom/todomvc/index.jsx"]);
