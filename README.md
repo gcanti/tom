@@ -1,80 +1,69 @@
 A complete routing library <del>for React</del>.
 
+**Work In progress...**
+
 # Features
 
-- hapijs-like routing concept
+- hapijs like api for routes definition
 - runs both on browser and on server
 - configurable state management
-- configurable ui target (React, ...)
-- configurable nested ui management
+- configurable ui target
+- simple nested ui management (a la react-router)
 - configurable location (hashchange, popstate)
 - configurable path to regexp implementation
 - simple api:
-  - `route(spec)`
-  - `run(callback)`
+  - `route(options)`
   - `get(url)`
-  - `post(url, [body])`
+  - `post(url, body?)`
+  - `render(renderable, ...args?)`
+- lightweight
 
-# Example
+# Gist
+
+myrouter.js
 
 ```js
 var React = require('react');
 var t = require('tom');
+var matcher = require('tom/lib/matcher');
+var router = new t.om.Router(matcher);
 
 //
-// configurable state management
+// route definition
 //
 
-var Todo = t.struct({
-  id: t.Str,
-  title: t.Str,
-  completed: t.Bool
-});
-var State = t.list(Todo);
-var state = State([]);
-
-//
-// hapijs-like routing concept
-//
-
-var app = new t.om.App();
-
-// get all todos
-app.route({
+router.route({
+  // get all todos
   method: 'GET', path: '/all',
   handler: function (ctx) {
-    ctx.res.render(<App state={state} />);
+    this.render(<App router={this} />);
   }
 });
 
-// add a todo
-app.route({
+router.route({
+  // add a todo
   method: 'POST', path: '/add',
   handler: function (ctx) {
-    var todo = new Todo({
+    // router.state is assumed, see client.js and server.js
+    this.state.push({
       id: '1',
       title: ctx.req.body.title,
       completed: false
     });
-    state = State.update(state, {'$push': [todo]});
-    ctx.res.redirect('/all');
+    this.redirect('/all');
   }
 });
 
 //
-// configurable ui target
+// ui definition
 //
-
-app.run(function (renderable) {
-  React.render(renderable, document.getElementById('app'));
-});
 
 var App = React.createClass({
 
   addTodo: function () {
     var title = this.refs.input.getDOMNode().value.trim();
     if (title) {
-      app.post('/add', {title: title});
+      this.props.router.post('/add', {title: title});
     }
   },
 
@@ -90,78 +79,106 @@ var App = React.createClass({
 
 });
 
-//
-// configurable location
-//
+module.exports = router;
+```
 
-// listen to hash changes
-window.onhashchange = function () {
-  app.get(location.hash.substr(1));
+client.js
+
+```js
+var React = require('react');
+
+// configure state, use what you prefer:
+// mutable or immutables structures, cursors, etc..
+router.state = window.state || []; // windows? see "Server side rendering"
+
+// configure ui target (on browser)
+router.render = function (renderable) {
+  React.render(renderable, document.getElementById('app'));
 };
 
-// first rendering
-if (location.hash) {
-  window.onhashchange();
-} else {
-  location.hash = '/all';
-}
 ```
 
-# Nested uis
+# Server side rendering
+
+server.js
 
 ```js
-// just add the nested uis in reverse order
-ctx.views = ctx.views || [];
-ctx.views = ctx.views.unshift(<Handler />);
+var app = express();
+// reuse of the defined router
+var router = require('./myrouter');
 
-// later...
-var Renderable = ctx.views.reduce(function (nested, wrapper) {
-  return wrapper(nested);
-}, leaf);
-app.render(Renderable);
-```
+// define the logic to retrive the user state
+var getStateByUser = ...
 
-# Server side
-
-```js
-// just define a different onRender
-app.run(function (renderable) {
-  // render html page using React.renderToString(renderable);
+// catch all route
+app.get('/*', function (req, res) {
+  // configure
+  router.state = getStateByUser(req.cookies.id);
+  router.render = function (renderable) {
+    res.render('index', {
+      // server side rendering
+      ui: React.renderToString(renderable),
+      // send the state to the client
+      state: JSON.stringify(router.state)
+    });
+  };
+  // dispatch
+  router.get(req.originalUrl);
 });
+```
+
+index.html
+
+```html
+<body>
+  <div id="app"><%= ui %></div>
+  <script>
+  var state = <%= state %>;
+  </script>
+  <script src="client.js"></script>
+</body>
+```
+
+# Demo
+
+```
+git clone https://github.com/gcanti/tom.git
+cd tom
+npm install
+npm run demo
 ```
 
 # API
 
 ## Request
 
-A request is an object containing the data associated to a route call:
+A `Request` is an (immutable) object containing the data associated to a url call:
 
 ```js
+// call: GET /user/1/projects?sort=asc
 {
   method: "GET" | "POST",
-  url: t.Str,
-  path: t.Str,
-  query: t.Obj,
-  body: t.maybe(t.Obj)
+  url: t.Str,          // "/user/1/projects?sort=asc"
+  path: t.Str,         // "/user/1/projects"
+  query: t.Obj,        // {sort: 'asc'}
+  body: t.maybe(t.Obj) // only for POSTs
 }
 ```
 
-## Response
+### Request.of(method, url, body)
 
-```js
-{
-  redirect(url: t.Str), // same as app.get(url)
-  render(renderable: t.Any)
-}
-```
+Helper `Request` factory (handles the `path` field).
 
 ## Context
 
+A `Context` is an object passed in a route handler:
+
 ```js
+// route path: /user/:userId/projects?sort=asc
+// call: GET /user/1/projects?sort=asc
 {
   req: Request,
-  res: Response,
-  params: t.Obj, // contains the path params
+  params: t.Obj, // contains the path params: {userId: '1'}
   next() // exec next middleware
 }
 ```
@@ -175,34 +192,48 @@ var matcher = require('tom/lib/matcher');
 var router = new Router(matcher);
 ```
 
+### matcher
+
+A function with the following signature:
+
+```js
+function matcher(path) {
+  return function match(url) {
+    // return the path params hash if match succeded,
+    // otherwise `false`
+  };
+}
+```
+
+
 ### Defining a route
 
 ```js
 router.route({
   method: "GET" | "POST",
   path: t.Str,
-  handler: t.Func // function (ctx: Context) {}
+  // function (ctx: Context) {}, `this` is the router
+  handler: t.func(Context, Nil)
 });
 ```
 
 ### Dispatching
 
 ```js
-router.dispatch(req: Request, res: Response)
+router.dispatch(req: Request)
 ```
 
-## App
+### Calling
 
 ```js
-var t = require('tom');
-var matcher = require('tom/lib/matcher');
-var app = new t.om.App(matcher);
+get(url: Str) // alias redirect(url)
+post(url: Str, body: t.maybe(t.Obj))
 ```
 
-Implements `Router` and:
+### emitter: EventEmitter
 
 ```js
-get(url: Str)
-post(url: Str, body: ?Obj)
-run(onRender(renderable: Any))
+router.emitter.on('dispatch', function (req: Request) {
+  // req: the dispatched Request
+});
 ```
