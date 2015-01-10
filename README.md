@@ -15,7 +15,7 @@ A complete routing library <del>for React</del>.
   - `route(options)`
   - `get(url)`
   - `post(url, body?)`
-  - `render(renderable, ...args?)`
+  - `render(renderable)`
 - lightweight
 
 # Gist
@@ -86,6 +86,7 @@ client.js
 
 ```js
 var React = require('react');
+var router = require('./myrouter');
 
 // configure state, use what you prefer:
 // mutable or immutables structures, cursors, etc..
