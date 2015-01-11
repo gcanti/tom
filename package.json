@@ -20,13 +20,13 @@
   "tags": [],
   "dependencies": {
     "debug": "^2.1.1",
-    "eventemitter3": "^0.1.6",
     "path-to-regexp": "^1.0.2",
     "tcomb": "^0.4.0"
   },
   "devDependencies": {
     "body-parser": "^1.10.1",
     "express": "^4.10.7",
+    "eventemitter3": "^0.1.6",
     "node-jsx": "^0.12.4",
     "react": "^0.12.2",
     "reactify": "^0.17.1",

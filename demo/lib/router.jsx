@@ -8,8 +8,12 @@ var Login = require('./components/Login.jsx');
 var Resend = require('./components/Resend.jsx');
 var Home = require('./components/Home.jsx');
 var request = require('superagent');
+var EventEmitter = require('eventemitter3');
 
-var router = new t.om.Router(matcher);
+var router = new t.om.Router({
+  matcher: matcher,
+  emitter: new EventEmitter()
+});
 
 router.route({
   method: 'GET', path: '/',
