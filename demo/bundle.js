@@ -154,15 +154,15 @@ module.exports = Resend;
 'use strict';
 
 var React = require('react');
-var t = require('../../');
-var matcher = require('../../lib/matcher');
+var t = require('../..');
 var App = require('./components/App.jsx');
 var Login = require('./components/Login.jsx');
 var Resend = require('./components/Resend.jsx');
 var Home = require('./components/Home.jsx');
 var request = require('superagent');
+var EventEmitter = require('eventemitter3');
 
-var router = new t.om.Router(matcher);
+var router = new t.om.Router();
 
 router.route({
   method: 'GET', path: '/',
@@ -226,33 +226,38 @@ router.route({
 router.route({
   method: 'GET', path: '/home',
   handler: function (ctx) {
-
     if (!this.state.user) {
       return this.redirect('/login');
     }
-
     this.state.page = 'home';
-
     var Renderable = ctx.handlers.reduce(function (handler, Outer) {
       return React.createElement(Outer, {handler: handler, router: this})
     }, React.createElement(Home, {router: this}));
-
     this.render(Renderable);
-
   }
 });
 
 module.exports = router;
-},{"../../":"/Users/giulio/Documents/Projects/github/tom/index.js","../../lib/matcher":"/Users/giulio/Documents/Projects/github/tom/lib/matcher.js","./components/App.jsx":"/Users/giulio/Documents/Projects/github/tom/demo/lib/components/App.jsx","./components/Home.jsx":"/Users/giulio/Documents/Projects/github/tom/demo/lib/components/Home.jsx","./components/Login.jsx":"/Users/giulio/Documents/Projects/github/tom/demo/lib/components/Login.jsx","./components/Resend.jsx":"/Users/giulio/Documents/Projects/github/tom/demo/lib/components/Resend.jsx","react":"/Users/giulio/Documents/Projects/github/tom/node_modules/react/react.js","superagent":"/Users/giulio/Documents/Projects/github/tom/node_modules/superagent/lib/client.js"}],"/Users/giulio/Documents/Projects/github/tom/index.js":[function(require,module,exports){
+},{"../..":"/Users/giulio/Documents/Projects/github/tom/index.js","./components/App.jsx":"/Users/giulio/Documents/Projects/github/tom/demo/lib/components/App.jsx","./components/Home.jsx":"/Users/giulio/Documents/Projects/github/tom/demo/lib/components/Home.jsx","./components/Login.jsx":"/Users/giulio/Documents/Projects/github/tom/demo/lib/components/Login.jsx","./components/Resend.jsx":"/Users/giulio/Documents/Projects/github/tom/demo/lib/components/Resend.jsx","eventemitter3":"/Users/giulio/Documents/Projects/github/tom/node_modules/eventemitter3/index.js","react":"/Users/giulio/Documents/Projects/github/tom/node_modules/react/react.js","superagent":"/Users/giulio/Documents/Projects/github/tom/node_modules/superagent/lib/client.js"}],"/Users/giulio/Documents/Projects/github/tom/index.js":[function(require,module,exports){
+'use strict';
+
 var t = require('tcomb');
+var Router = require('./lib/Router');
+var matcher = require('./lib/matcher');
+var EventEmitter = require('eventemitter3');
 
 t.om = {
-  Router: require('./lib/Router')
+  Router: function () {
+    return new Router({
+      matcher: matcher,
+      emitter: new EventEmitter()
+    });
+  }
 };
 
 module.exports = t;
 
-},{"./lib/Router":"/Users/giulio/Documents/Projects/github/tom/lib/Router.js","tcomb":"/Users/giulio/Documents/Projects/github/tom/node_modules/tcomb/index.js"}],"/Users/giulio/Documents/Projects/github/tom/lib/Method.js":[function(require,module,exports){
+},{"./lib/Router":"/Users/giulio/Documents/Projects/github/tom/lib/Router.js","./lib/matcher":"/Users/giulio/Documents/Projects/github/tom/lib/matcher.js","eventemitter3":"/Users/giulio/Documents/Projects/github/tom/node_modules/eventemitter3/index.js","tcomb":"/Users/giulio/Documents/Projects/github/tom/node_modules/tcomb/index.js"}],"/Users/giulio/Documents/Projects/github/tom/lib/Method.js":[function(require,module,exports){
 'use strict';
 
 var t = require('tcomb');
@@ -300,7 +305,6 @@ var t = require('tcomb');
 var debug = require('debug')('Router');
 var Method = require('./Method');
 var Request = require('./Request');
-var EventEmitter = require('eventemitter3');
 
 var Params = t.dict(t.Str, t.Type, 'Params');
 
@@ -323,10 +327,10 @@ function Context(req, next) {
   this.params = {};
 }
 
-function Router(matcher) {
-  this.matcher = matcher;
+function Router(opts) {
+  this.matcher = opts.matcher;
+  this.emitter = opts.emitter;
   this.layers = {};
-  this.emitter = new EventEmitter();
 }
 
 Router.prototype.route = function (route) {
@@ -399,7 +403,7 @@ Route.prototype.toString = function() {
 };
 
 module.exports = Router;
-},{"./Method":"/Users/giulio/Documents/Projects/github/tom/lib/Method.js","./Request":"/Users/giulio/Documents/Projects/github/tom/lib/Request.js","debug":"/Users/giulio/Documents/Projects/github/tom/node_modules/debug/browser.js","eventemitter3":"/Users/giulio/Documents/Projects/github/tom/node_modules/eventemitter3/index.js","tcomb":"/Users/giulio/Documents/Projects/github/tom/node_modules/tcomb/index.js"}],"/Users/giulio/Documents/Projects/github/tom/lib/matcher.js":[function(require,module,exports){
+},{"./Method":"/Users/giulio/Documents/Projects/github/tom/lib/Method.js","./Request":"/Users/giulio/Documents/Projects/github/tom/lib/Request.js","debug":"/Users/giulio/Documents/Projects/github/tom/node_modules/debug/browser.js","tcomb":"/Users/giulio/Documents/Projects/github/tom/node_modules/tcomb/index.js"}],"/Users/giulio/Documents/Projects/github/tom/lib/matcher.js":[function(require,module,exports){
 'use strict';
 
 var pathToRegexp = require('path-to-regexp');

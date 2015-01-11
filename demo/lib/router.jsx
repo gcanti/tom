@@ -1,8 +1,7 @@
 'use strict';
 
 var React = require('react');
-var t = require('../../');
-var matcher = require('../../lib/matcher');
+var t = require('../..');
 var App = require('./components/App.jsx');
 var Login = require('./components/Login.jsx');
 var Resend = require('./components/Resend.jsx');
@@ -10,10 +9,7 @@ var Home = require('./components/Home.jsx');
 var request = require('superagent');
 var EventEmitter = require('eventemitter3');
 
-var router = new t.om.Router({
-  matcher: matcher,
-  emitter: new EventEmitter()
-});
+var router = new t.om.Router();
 
 router.route({
   method: 'GET', path: '/',
@@ -77,19 +73,14 @@ router.route({
 router.route({
   method: 'GET', path: '/home',
   handler: function (ctx) {
-
     if (!this.state.user) {
       return this.redirect('/login');
     }
-
     this.state.page = 'home';
-
     var Renderable = ctx.handlers.reduce(function (handler, Outer) {
       return <Outer handler={handler} router={this} />
     }, <Home router={this} />);
-
     this.render(Renderable);
-
   }
 });
 

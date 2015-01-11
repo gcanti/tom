@@ -24,9 +24,14 @@ myrouter.js
 
 ```js
 var React = require('react');
-var t = require('tom');
+var Router = require('tom/lib/Router');
 var matcher = require('tom/lib/matcher');
-var router = new t.om.Router(matcher);
+var EventEmitter = require('eventemitter3');
+
+var router = new Router({
+  matcher: matcher,
+  emitter: new EventEmitter()
+});
 
 //
 // route definition
@@ -138,6 +143,49 @@ index.html
   </script>
   <script src="client.js"></script>
 </body>
+```
+
+# Handling nested views
+
+```js
+var App = React.createClass({
+  render: function () {
+    return (
+      <div>
+        {this.props.children}
+      </div>
+    );
+  }
+});
+
+var Login = React.createClass({
+  render: function () {
+    return (
+      <div>
+        login
+      </div>
+    );
+  }
+});
+
+router.route({
+  method: 'GET', path: '/(.*)',
+  handler: function (ctx) {
+    // just add the partials in reverse order
+    ctx.partials = [App];
+    ctx.next();
+  }
+});
+
+router.route({
+  method: 'GET', path: '/login',
+  handler: function (ctx) {
+    var Renderable = ctx.partials.reduce(function (view, Partial) {
+      return <Partial router={this}>{view}</Partial>;
+    }, <Login router={this} />);
+    this.render(Renderable);
+  }
+});
 ```
 
 # Demo
