@@ -82,7 +82,8 @@ var React = require('react');
 
 var Login = React.createClass({displayName: "Login",
 
-  logIn: function () {
+  logIn: function (evt) {
+    evt.preventDefault();
     var body = {
       email: this.refs.email.getDOMNode().value.trim() || null,
       password: this.refs.password.getDOMNode().value.trim() || null,
@@ -165,14 +166,16 @@ var EventEmitter = require('eventemitter3');
 var router = new t.om.Router();
 
 router.route({
-  method: 'GET', path: '/',
+  method: 'GET',
+  path: '/',
   handler: function (ctx) {
     this.redirect('/' + this.state.page);
   }
 });
 
 router.route({
-  method: 'GET', path: '/(.*)',
+  method: 'GET',
+  path: '/(.*)',
   handler: function (ctx) {
     ctx.handlers = [App];
     ctx.next();
@@ -180,7 +183,8 @@ router.route({
 });
 
 router.route({
-  method: 'GET', path: '/login',
+  method: 'GET',
+  path: '/login',
   handler: function (ctx) {
     this.state.page = 'login';
 
@@ -193,7 +197,8 @@ router.route({
 });
 
 router.route({
-  method: 'GET', path: '/resend',
+  method: 'GET',
+  path: '/resend',
   handler: function (ctx) {
     this.state.page = 'resend';
 
@@ -206,16 +211,17 @@ router.route({
 });
 
 router.route({
-  method: 'POST', path: '/login',
+  method: 'POST',
+  path: '/login',
   handler: function (ctx) {
     var body = ctx.req.body;
     // superagent call
     request
       .post('/api/login')
       .send(body)
-      .end(function (err, result) {
-        if (err || !result.ok) {
-          return this.redirect('/login');
+      .end(function (result) {
+        if (!result.ok) {
+          return this.redirect('/login', {}, {error: result.body.error});
         }
         this.state.user = body;
         this.redirect('/home');
@@ -224,7 +230,8 @@ router.route({
 });
 
 router.route({
-  method: 'GET', path: '/home',
+  method: 'GET',
+  path: '/home',
   handler: function (ctx) {
     if (!this.state.user) {
       return this.redirect('/login');
@@ -298,13 +305,11 @@ Request.of = function (method, url, body) {
 };
 
 module.exports = Request;
-},{"./Method":"/Users/giulio/Documents/Projects/github/tom/lib/Method.js","querystring":"/usr/local/lib/node_modules/watchify/node_modules/browserify/node_modules/querystring-es3/index.js","tcomb":"/Users/giulio/Documents/Projects/github/tom/node_modules/tcomb/index.js","url":"/usr/local/lib/node_modules/watchify/node_modules/browserify/node_modules/url/url.js"}],"/Users/giulio/Documents/Projects/github/tom/lib/Router.js":[function(require,module,exports){
+},{"./Method":"/Users/giulio/Documents/Projects/github/tom/lib/Method.js","querystring":"/usr/local/lib/node_modules/watchify/node_modules/browserify/node_modules/querystring-es3/index.js","tcomb":"/Users/giulio/Documents/Projects/github/tom/node_modules/tcomb/index.js","url":"/usr/local/lib/node_modules/watchify/node_modules/browserify/node_modules/url/url.js"}],"/Users/giulio/Documents/Projects/github/tom/lib/Route.js":[function(require,module,exports){
 'use strict';
 
 var t = require('tcomb');
-var debug = require('debug')('Router');
 var Method = require('./Method');
-var Request = require('./Request');
 
 var Params = t.dict(t.Str, t.Type, 'Params');
 
@@ -315,6 +320,17 @@ var Route = t.struct({
   name: t.maybe(t.Str),
   params: t.maybe(Params)
 }, 'Route');
+
+module.exports = Route;
+},{"./Method":"/Users/giulio/Documents/Projects/github/tom/lib/Method.js","tcomb":"/Users/giulio/Documents/Projects/github/tom/node_modules/tcomb/index.js"}],"/Users/giulio/Documents/Projects/github/tom/lib/Router.js":[function(require,module,exports){
+'use strict';
+
+var t = require('tcomb');
+var debug = require('debug')('Router');
+var Method = require('./Method');
+var Request = require('./Request');
+var Route = require('./Route');
+var toUrl = require('./toUrl');
 
 var Layer = t.struct({
   route: Route,
@@ -333,77 +349,78 @@ function Router(opts) {
   this.layers = {};
 }
 
-Router.prototype.route = function (route) {
+t.util.mixin(Router.prototype, {
 
-  route = new Route(route);
+  route: function (route) {
+    route = new Route(route);
+    debug('def %s', route + '');
+    var layers = this.layers[route.method] = this.layers[route.method] || [];
+    layers.push(new Layer({
+      route: route,
+      match: this.matcher(route.path)
+    }));
+    return this;
+  },
 
-  debug('defining %s', route + '');
-  var layers = this.layers[route.method] = this.layers[route.method] || [];
-  layers.push(new Layer({
-    route: route,
-    match: this.matcher(route.path)
-  }));
+  getLayers: function(method) {
+    return this.layers[method] ? this.layers[method].slice() : [];
+  },
 
-  return this;
-};
+  dispatch: function(req) {
+    req = new Request(req);
+    debug('dispatching %s', req + '');
+    this.emitter.emit('dispatch', req);
+    var layers = this.getLayers(req.method);
+    debug('  %s layer(s) found', layers.length);
 
-Router.prototype.getLayers = function(method) {
-  return this.layers[method] ? this.layers[method].slice() : [];
-};
+    var router = this;
+    var ctx = new Context(req, next);
 
-Router.prototype.dispatch = function(req) {
-
-  req = new Request(req);
-
-  debug('dispatching %s', req + '');
-  this.emitter.emit('dispatch', req);
-  var layers = this.getLayers(req.method);
-  debug('  %s layer(s) found', layers.length);
-
-  var self = this;
-  var ctx = new Context(req, next);
-
-  function next() {
-    if (!layers.length) {
-      throw new Error(t.util.format(' match not found for %s', req + ''));
+    function next() {
+      if (!layers.length) {
+        throw new Error(t.util.format(' match not found for %s', req + ''));
+      }
+      var layer = layers.shift();
+      var params = layer.match(req.path);
+      if (!params) {
+        return next();
+      }
+      debug('  match found: %s', layer.route + '');
+      ctx.params = params;
+      // call the handle with the router as `this`
+      layer.route.handler.call(router, ctx);
     }
-    var layer = layers.shift();
-    var params = layer.match(req.path);
-    if (!params) {
-      return next();
-    }
-    debug('  match found: %s', layer.route + '');
-    ctx.params = params;
-    layer.route.handler.call(self, ctx);
+
+    next();
+
+    return this;
+  },
+
+  get: function (url) {
+    return this.dispatch(Request.of('GET', url));
+  },
+
+  // alias
+  redirect: function (path, params, query) {
+    var url = toUrl(path, params, query);
+    debug('redirecting to %s', url);
+    return this.get(url);
+  },
+
+  post: function (url, body) {
+    return this.dispatch(Request.of('POST', url, body));
+  },
+
+  debug: require('debug'),
+
+  toString: function() {
+    return t.util.format('[%s %s, Route]', this.method, this.path);
   }
 
-  next();
-
-  return this;
-};
-
-Router.prototype.get = function (url) {
-  return this.dispatch(Request.of('GET', url));
-};
-
-// alias
-Router.prototype.redirect = function (url) {
-  debug('redirecting to %s', url);
-  return this.get(url);
-};
-
-Router.prototype.post = function (url, body) {
-  return this.dispatch(Request.of('POST', url, body));
-};
-
-Router.prototype.debug = require('debug');
-
-Route.prototype.toString = function() {
-  return t.util.format('[%s %s, Route]', this.method, this.path);
-};
+});
 
 module.exports = Router;
-},{"./Method":"/Users/giulio/Documents/Projects/github/tom/lib/Method.js","./Request":"/Users/giulio/Documents/Projects/github/tom/lib/Request.js","debug":"/Users/giulio/Documents/Projects/github/tom/node_modules/debug/browser.js","tcomb":"/Users/giulio/Documents/Projects/github/tom/node_modules/tcomb/index.js"}],"/Users/giulio/Documents/Projects/github/tom/lib/matcher.js":[function(require,module,exports){
+},{"./Method":"/Users/giulio/Documents/Projects/github/tom/lib/Method.js","./Request":"/Users/giulio/Documents/Projects/github/tom/lib/Request.js","./Route":"/Users/giulio/Documents/Projects/github/tom/lib/Route.js","./toUrl":"/Users/giulio/Documents/Projects/github/tom/lib/toUrl.js","debug":"/Users/giulio/Documents/Projects/github/tom/node_modules/debug/browser.js","tcomb":"/Users/giulio/Documents/Projects/github/tom/node_modules/tcomb/index.js"}],"/Users/giulio/Documents/Projects/github/tom/lib/matcher.js":[function(require,module,exports){
 'use strict';
 
 var pathToRegexp = require('path-to-regexp');
@@ -425,7 +442,7 @@ function getParams(match, keys) {
   return params;
 }
 
-// matcher: path: t.Str -> t.func(path: t.Str, params: t.Obj | t.Bool)
+// matcher: path: t.Str -> t.func(path: t.Str, params: t.maybe(t.Obj))
 function matcher(path) {
 
   var keys = [];
@@ -433,15 +450,35 @@ function matcher(path) {
 
   return function match(path) {
     var match = regexp.exec(path);
-    if (!match) {
-      return false;
-    }
-    return getParams(match, keys);
+    return match ? getParams(match, keys) : null;
   };
 }
 
 module.exports = matcher;
-},{"path-to-regexp":"/Users/giulio/Documents/Projects/github/tom/node_modules/path-to-regexp/index.js"}],"/Users/giulio/Documents/Projects/github/tom/node_modules/debug/browser.js":[function(require,module,exports){
+},{"path-to-regexp":"/Users/giulio/Documents/Projects/github/tom/node_modules/path-to-regexp/index.js"}],"/Users/giulio/Documents/Projects/github/tom/lib/toUrl.js":[function(require,module,exports){
+'use strict';
+
+var querystring = require('querystring');
+
+function toUrl(path, params, query) {
+  var url = path;
+  if (params) {
+    for (var k in params) {
+      if (params.hasOwnProperty(k)) {
+        url = url.replace(':' + k, params[k]);
+      }
+    }
+  }
+  if (query) {
+    url += (path.indexOf('?') === -1 ? '?' : '') + querystring.stringify(query)
+  }
+  return url;
+}
+
+module.exports = toUrl;
+
+
+},{"querystring":"/usr/local/lib/node_modules/watchify/node_modules/browserify/node_modules/querystring-es3/index.js"}],"/Users/giulio/Documents/Projects/github/tom/node_modules/debug/browser.js":[function(require,module,exports){
 
 /**
  * This is the web browser implementation of `debug()`.

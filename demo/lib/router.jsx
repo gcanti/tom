@@ -12,14 +12,16 @@ var EventEmitter = require('eventemitter3');
 var router = new t.om.Router();
 
 router.route({
-  method: 'GET', path: '/',
+  method: 'GET',
+  path: '/',
   handler: function (ctx) {
     this.redirect('/' + this.state.page);
   }
 });
 
 router.route({
-  method: 'GET', path: '/(.*)',
+  method: 'GET',
+  path: '/(.*)',
   handler: function (ctx) {
     ctx.handlers = [App];
     ctx.next();
@@ -27,7 +29,8 @@ router.route({
 });
 
 router.route({
-  method: 'GET', path: '/login',
+  method: 'GET',
+  path: '/login',
   handler: function (ctx) {
     this.state.page = 'login';
 
@@ -40,7 +43,8 @@ router.route({
 });
 
 router.route({
-  method: 'GET', path: '/resend',
+  method: 'GET',
+  path: '/resend',
   handler: function (ctx) {
     this.state.page = 'resend';
 
@@ -53,16 +57,17 @@ router.route({
 });
 
 router.route({
-  method: 'POST', path: '/login',
+  method: 'POST',
+  path: '/login',
   handler: function (ctx) {
     var body = ctx.req.body;
     // superagent call
     request
       .post('/api/login')
       .send(body)
-      .end(function (err, result) {
-        if (err || !result.ok) {
-          return this.redirect('/login');
+      .end(function (result) {
+        if (!result.ok) {
+          return this.redirect('/login', {}, {error: result.body.error});
         }
         this.state.user = body;
         this.redirect('/home');
@@ -71,7 +76,8 @@ router.route({
 });
 
 router.route({
-  method: 'GET', path: '/home',
+  method: 'GET',
+  path: '/home',
   handler: function (ctx) {
     if (!this.state.user) {
       return this.redirect('/login');

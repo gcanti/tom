@@ -275,14 +275,21 @@ router.dispatch(req: Request)
 
 ```js
 get(url: Str)
-redirect(url: Str) // alias of get(url)
 post(url: Str, body: t.maybe(t.Obj))
+redirect(path: t.Str, params: t.maybe(t.Obj), query: t.maybe(t.Obj))
 ```
 
-### emitter: EventEmitter
+### Events
 
 ```js
 router.emitter.on('dispatch', function (req: Request) {
   // req: the dispatched Request
 });
+```
+
+### Debugging
+
+```js
+// the module debug is exported
+router.debug.enable('Router');
 ```

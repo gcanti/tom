@@ -4,7 +4,8 @@ var React = require('react');
 
 var Login = React.createClass({
 
-  logIn: function () {
+  logIn: function (evt) {
+    evt.preventDefault();
     var body = {
       email: this.refs.email.getDOMNode().value.trim() || null,
       password: this.refs.password.getDOMNode().value.trim() || null,
