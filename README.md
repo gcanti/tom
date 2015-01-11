@@ -38,16 +38,16 @@ var router = new Router({
 //
 
 router.route({
-  // get all todos
-  method: 'GET', path: '/all',
+  method: 'GET',
+  path: '/all',
   handler: function (ctx) {
     this.render(<App router={this} />);
   }
 });
 
 router.route({
-  // add a todo
-  method: 'POST', path: '/add',
+  method: 'POST',
+  path: '/add',
   handler: function (ctx) {
     // router.state is assumed, see client.js and server.js
     this.state.push({
@@ -75,9 +75,9 @@ var App = React.createClass({
   render: function () {
     return (
       <div>
-      <pre>{JSON.stringify(this.props.state, null, 2)}</pre>
-      <input type="text" ref="input"/>
-      <button onClick={this.addTodo}>Add</button>
+        <pre>{JSON.stringify(this.props.state, null, 2)}</pre>
+        <input type="text" ref="input"/>
+        <button onClick={this.addTodo}>Add</button>
       </div>
     );
   }
@@ -93,11 +93,11 @@ client.js
 var React = require('react');
 var router = require('./myrouter');
 
-// configure state, use what you prefer:
-// mutable or immutables structures, cursors, etc..
-router.state = window.state || []; // windows? see "Server side rendering"
+// initialise state
+// windows? see "Server side rendering"
+router.state = window.state || [];
 
-// configure ui target (on browser)
+// configure ui target
 router.render = function (renderable) {
   React.render(renderable, document.getElementById('app'));
 };
@@ -110,7 +110,6 @@ server.js
 
 ```js
 var app = express();
-// reuse of the defined router
 var router = require('./myrouter');
 
 // define the logic to retrive the user state
@@ -118,11 +117,9 @@ var getStateByUser = ...
 
 // catch all route
 app.get('/*', function (req, res) {
-  // configure
   router.state = getStateByUser(req.cookies.id);
   router.render = function (renderable) {
     res.render('index', {
-      // server side rendering
       ui: React.renderToString(renderable),
       // send the state to the client
       state: JSON.stringify(router.state)
@@ -158,18 +155,19 @@ var App = React.createClass({
   }
 });
 
-var Login = React.createClass({
+var Nested = React.createClass({
   render: function () {
     return (
       <div>
-        login
+        nested route
       </div>
     );
   }
 });
 
 router.route({
-  method: 'GET', path: '/(.*)',
+  method: 'GET',
+  path: '/(.*)',
   handler: function (ctx) {
     // just add the partials in reverse order
     ctx.partials = [App];
@@ -178,11 +176,12 @@ router.route({
 });
 
 router.route({
-  method: 'GET', path: '/login',
+  method: 'GET',
+  path: '/nested',
   handler: function (ctx) {
     var Renderable = ctx.partials.reduce(function (view, Partial) {
-      return <Partial router={this}>{view}</Partial>;
-    }, <Login router={this} />);
+      return <Partial>{view}</Partial>;
+    }, <Nested />);
     this.render(Renderable);
   }
 });
@@ -249,7 +248,7 @@ A function with the following signature:
 function matcher(path) {
   return function match(url) {
     // return the path params hash if match succeded,
-    // otherwise `false`
+    // otherwise `null`
   };
 }
 ```
@@ -275,7 +274,8 @@ router.dispatch(req: Request)
 ### Calling
 
 ```js
-get(url: Str) // alias redirect(url)
+get(url: Str)
+redirect(url: Str) // alias of get(url)
 post(url: Str, body: t.maybe(t.Obj))
 ```
 
