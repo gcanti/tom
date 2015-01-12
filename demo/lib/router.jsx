@@ -23,7 +23,7 @@ router.route({
   method: 'GET',
   path: '/(.*)',
   handler: function (ctx) {
-    ctx.handlers = [App];
+    ctx.partials = [App];
     ctx.next();
   }
 });
@@ -32,12 +32,13 @@ router.route({
   method: 'GET',
   path: '/login',
   handler: function (ctx) {
+    if (this.state.user) {
+      return this.redirect('/home');
+    }
     this.state.page = 'login';
-
-    var Renderable = ctx.handlers.reduce(function (handler, Outer) {
-      return <Outer handler={handler} router={this} />
+    var Renderable = ctx.partials.reduce(function (view, Partial) {
+      return <Partial router={this}>{view}</Partial>
     }, <Login router={this} />);
-
     this.render(Renderable);
   }
 });
@@ -46,12 +47,13 @@ router.route({
   method: 'GET',
   path: '/resend',
   handler: function (ctx) {
+    if (this.state.user) {
+      return this.redirect('/home');
+    }
     this.state.page = 'resend';
-
-    var Renderable = ctx.handlers.reduce(function (handler, Outer) {
-      return <Outer handler={handler} router={this} />
+    var Renderable = ctx.partials.reduce(function (view, Partial) {
+      return <Partial router={this}>{view}</Partial>
     }, <Resend router={this} />);
-
     this.render(Renderable);
   }
 });
@@ -67,7 +69,8 @@ router.route({
       .send(body)
       .end(function (result) {
         if (!result.ok) {
-          return this.redirect('/login', {}, {error: result.body.error});
+          router.state.login = {error: result.body.error};
+          return this.redirect('/login');
         }
         this.state.user = body;
         this.redirect('/home');
@@ -83,10 +86,28 @@ router.route({
       return this.redirect('/login');
     }
     this.state.page = 'home';
-    var Renderable = ctx.handlers.reduce(function (handler, Outer) {
-      return <Outer handler={handler} router={this} />
+    var Renderable = ctx.partials.reduce(function (view, Partial) {
+      return <Partial router={this}>{view}</Partial>
     }, <Home router={this} />);
     this.render(Renderable);
+  }
+});
+
+router.route({
+  method: 'POST',
+  path: '/logout',
+  handler: function (ctx) {
+    // superagent call
+    request
+      .post('/api/logout')
+      .end(function (result) {
+        if (!result.ok) {
+          return this.redirect('/home');
+        }
+        this.state.login = null;
+        this.state.user = null;
+        this.redirect('/login');
+    }.bind(this));
   }
 });
 

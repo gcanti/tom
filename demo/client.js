@@ -2,32 +2,39 @@
 
 var React = require('react');
 var router = require('./lib/router.jsx');
-var debug = router.debug('Client');
+var debug = require('debug')('Client');
 
-router.debug.enable('*');
-//router.debug.disable();
-
+// configure state
 router.state = window.state;
 
+// configure rendering
 router.render = function (renderable) {
   React.render(renderable, document.getElementById('app'));
 };
 
-// set to true to get an old style app
-var refreshing = false;
-if (!refreshing) {
-  var url = '/' + state.page;
-  router.get(url);
-  history.replaceState({url: url}, '', url);
+// set to false to get an old style app instead of an SPA
+var isSPA = true;
+if (isSPA) {
 
+  // hydrate the client forcing a React re-redering
+  router.get('/' + state.page);
+
+  // push in history everytime a GET occurs
   router.emitter.on('dispatch', function (req) {
     if (req.method === 'GET') {
       history.pushState({url: req.url}, '', req.url);
     }
   });
 
+  // handle back / forward buttons
   window.onpopstate = function (evt) {
-    debug('onpopstate: ', evt.state);
-    router.get(evt.state.url);
+    if (evt.state) {
+      debug('onpopstate: ', evt.state);
+      router.get(evt.state.url);
+    }
   };
 }
+
+// outputs debug messages to console
+require('debug').enable('*');
+

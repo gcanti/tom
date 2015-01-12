@@ -6,12 +6,12 @@ var App = React.createClass({
 
   render: function () {
     return (
-      <div className="panel panel-primary">
+      <div className="panel panel-default">
         <div className="panel-heading text-center">
           tom demo
         </div>
         <div className="panel-body">
-          {this.props.handler}
+          {this.props.children}
         </div>
       </div>
     );

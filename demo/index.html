@@ -6,10 +6,17 @@
     <link rel="stylesheet" href="assets/css/bootstrap.min.css">
   </head>
   <body>
-    <div id="app" class="container"><%= ui %></div>
+    <div id="app" class="container" style="margin-top: 40px;">
+      <%= ui %>
+    </div>
     <script>
     var state = <%= state %>;
     </script>
     <script src="assets/bundle.js"></script>
+    <noscript>
+      <div id="app" class="container" style="margin-top: 40px;">
+        <div class="alert alert-warning">JavaScript is disabled</div>
+      </div>
+    </noscript>
   </body>
 </html>

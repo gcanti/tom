@@ -7,16 +7,16 @@ A complete routing library <del>for React</del>.
 - hapijs like api for routes definition
 - runs both on browser and on server
 - configurable state management
-- configurable ui target
+- configurable ui target (React, others...)
 - simple nested ui management (a la react-router)
-- configurable location (hashchange, popstate)
+- configurable location (hash, history)
 - configurable path to regexp implementation
 - simple api:
-  - `route(options)`
+  - `route(spec)`
+  - `redirect(path, params, query)`
   - `get(url)`
-  - `post(url, body?)`
-  - `render(renderable)`
-- lightweight
+  - `post(url, body)`
+- lightweight (~200 LOC)
 
 # Gist
 
@@ -24,17 +24,12 @@ myrouter.js
 
 ```js
 var React = require('react');
-var Router = require('tom/lib/Router');
-var matcher = require('tom/lib/matcher');
-var EventEmitter = require('eventemitter3');
+var t = require('tom');
 
-var router = new Router({
-  matcher: matcher,
-  emitter: new EventEmitter()
-});
+var router = new t.om.Router();
 
 //
-// route definition
+// routes
 //
 
 router.route({
@@ -65,7 +60,7 @@ router.route({
 
 var App = React.createClass({
 
-  addTodo: function () {
+  add: function () {
     var title = this.refs.input.getDOMNode().value.trim();
     if (title) {
       this.props.router.post('/add', {title: title});
@@ -77,7 +72,7 @@ var App = React.createClass({
       <div>
         <pre>{JSON.stringify(this.props.state, null, 2)}</pre>
         <input type="text" ref="input"/>
-        <button onClick={this.addTodo}>Add</button>
+        <button onClick={this.add}>Add</button>
       </div>
     );
   }
@@ -193,7 +188,7 @@ router.route({
 git clone https://github.com/gcanti/tom.git
 cd tom
 npm install
-npm run demo
+npm start
 ```
 
 # API
@@ -206,38 +201,44 @@ A `Request` is an (immutable) object containing the data associated to a url cal
 // call: GET /user/1/projects?sort=asc
 {
   method: "GET" | "POST",
-  url: t.Str,          // "/user/1/projects?sort=asc"
-  path: t.Str,         // "/user/1/projects"
-  query: t.Obj,        // {sort: 'asc'}
-  body: t.maybe(t.Obj) // only for POSTs
+  url: Str,   // "/user/1/projects?sort=asc"
+  path: Str,  // "/user/1/projects"
+  query: Obj, // {sort: 'asc'}
+  body: ?Obj  // only for POSTs
 }
 ```
 
-### Request.of(method, url, body)
+### Request.of
 
-Helper `Request` factory (handles the `path` field).
+Helper `Request` factory that handles the `path` field:
+
+```js
+(method: Method, url: Str, body: ?Obj) -> Request
+```
 
 ## Context
 
 A `Context` is an object passed in a route handler:
 
 ```js
+// example:
 // route path: /user/:userId/projects?sort=asc
 // call: GET /user/1/projects?sort=asc
 {
   req: Request,
-  params: t.Obj, // contains the path params: {userId: '1'}
-  next() // exec next middleware
+  params: Obj, // contains the path params: {userId: '1'}
+  next(): () -> Nil // exec next middleware
 }
 ```
 
 ## Router
 
 ```js
-var Router = require('tom/Router');
-// default path to regexp implementation
-var matcher = require('tom/lib/matcher');
-var router = new Router(matcher);
+var Router = require('tom/lib/Router');
+var router = new Router({
+  matcher: t.Str -> (t.Str -> ?t.Obj)
+  emitter: EventEmitter
+});
 ```
 
 ### matcher
@@ -275,8 +276,8 @@ router.dispatch(req: Request)
 
 ```js
 get(url: Str)
-post(url: Str, body: t.maybe(t.Obj))
-redirect(path: t.Str, params: t.maybe(t.Obj), query: t.maybe(t.Obj))
+post(url: Str, body: ?Obj)
+redirect(path: Str, params: ?Obj, query: ?Obj)
 ```
 
 ### Events
@@ -291,5 +292,5 @@ router.emitter.on('dispatch', function (req: Request) {
 
 ```js
 // the module debug is exported
-router.debug.enable('Router');
+t.om.debug.enable('Router');
 ```

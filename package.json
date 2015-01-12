@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "watch": "watchify -t reactify demo/client.js -o demo/bundle.js -v",
-    "demo": "node demo/server"
+    "start": "node demo/server"
   },
   "repository": {
     "type": "git",

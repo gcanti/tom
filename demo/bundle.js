@@ -3,37 +3,44 @@
 
 var React = require('react');
 var router = require('./lib/router.jsx');
-var debug = router.debug('Client');
+var debug = require('debug')('Client');
 
-router.debug.enable('*');
-//router.debug.disable();
-
+// configure state
 router.state = window.state;
 
+// configure rendering
 router.render = function (renderable) {
   React.render(renderable, document.getElementById('app'));
 };
 
-// set to true to get an old style app
-var refreshing = false;
-if (!refreshing) {
-  var url = '/' + state.page;
-  router.get(url);
-  history.replaceState({url: url}, '', url);
+// set to false to get an old style app instead of an SPA
+var isSPA = true;
+if (isSPA) {
 
+  // hydrate the client forcing a React re-redering
+  router.get('/' + state.page);
+
+  // push in history everytime a GET occurs
   router.emitter.on('dispatch', function (req) {
     if (req.method === 'GET') {
       history.pushState({url: req.url}, '', req.url);
     }
   });
 
+  // handle back / forward buttons
   window.onpopstate = function (evt) {
-    debug('onpopstate: ', evt.state);
-    router.get(evt.state.url);
+    if (evt.state) {
+      debug('onpopstate: ', evt.state);
+      router.get(evt.state.url);
+    }
   };
 }
 
-},{"./lib/router.jsx":"/Users/giulio/Documents/Projects/github/tom/demo/lib/router.jsx","react":"/Users/giulio/Documents/Projects/github/tom/node_modules/react/react.js"}],"/Users/giulio/Documents/Projects/github/tom/demo/lib/components/App.jsx":[function(require,module,exports){
+// outputs debug messages to console
+require('debug').enable('*');
+
+
+},{"./lib/router.jsx":"/Users/giulio/Documents/Projects/github/tom/demo/lib/router.jsx","debug":"/Users/giulio/Documents/Projects/github/tom/node_modules/debug/browser.js","react":"/Users/giulio/Documents/Projects/github/tom/node_modules/react/react.js"}],"/Users/giulio/Documents/Projects/github/tom/demo/lib/components/App.jsx":[function(require,module,exports){
 'use strict';
 
 var React = require('react');
@@ -42,12 +49,12 @@ var App = React.createClass({displayName: "App",
 
   render: function () {
     return (
-      React.createElement("div", {className: "panel panel-primary"}, 
+      React.createElement("div", {className: "panel panel-default"}, 
         React.createElement("div", {className: "panel-heading text-center"}, 
           "tom demo"
         ), 
         React.createElement("div", {className: "panel-body"}, 
-          this.props.handler
+          this.props.children
         )
       )
     );
@@ -63,11 +70,19 @@ var React = require('react');
 
 var Home = React.createClass({displayName: "Home",
 
+  doLogout: function (evt) {
+    evt.preventDefault();
+    this.props.router.post('/logout');
+  },
+
   render: function () {
     return (
       React.createElement("div", {className: "col-md-4 col-md-offset-4"}, 
         React.createElement("h3", null, "Home"), 
-        React.createElement("p", null, "Welcome ", this.props.router.state.user.email)
+        React.createElement("p", null, "Welcome ", this.props.router.state.user.email), 
+        React.createElement("form", {action: "/logout", method: "POST"}, 
+          React.createElement("button", {className: "btn btn-primary", onClick: this.doLogout}, "Log out")
+        )
       )
     );
   }
@@ -82,7 +97,7 @@ var React = require('react');
 
 var Login = React.createClass({displayName: "Login",
 
-  logIn: function (evt) {
+  doLogin: function (evt) {
     evt.preventDefault();
     var body = {
       email: this.refs.email.getDOMNode().value.trim() || null,
@@ -96,10 +111,19 @@ var Login = React.createClass({displayName: "Login",
     this.props.router.get('/resend');
   },
 
+  getMessage: function () {
+    var state = this.props.router.state;
+    return state.login && state.login.error ?
+      React.createElement("div", {className: "alert alert-danger"}, state.login.error) :
+      null;
+  },
+
   render: function () {
+
     return (
       React.createElement("div", {className: "col-md-4 col-md-offset-4"}, 
         React.createElement("h3", null, "Log In"), 
+        this.getMessage(), 
         React.createElement("form", {action: "/login", method: "POST"}, 
           React.createElement("div", {className: "form-group"}, 
             React.createElement("input", {ref: "email", name: "email", type: "text", className: "form-control", placeholder: "Email", defaultValue: "user@domain.com"})
@@ -110,7 +134,7 @@ var Login = React.createClass({displayName: "Login",
           React.createElement("div", {className: "form-group"}, 
             React.createElement("a", {href: "/resend", onClick: this.goResend}, "Forgot your password?")
           ), 
-          React.createElement("button", {className: "btn btn-primary", onClick: this.logIn}, "Log In")
+          React.createElement("button", {className: "btn btn-primary", onClick: this.doLogin}, "Log In")
         )
       )
     );
@@ -177,7 +201,7 @@ router.route({
   method: 'GET',
   path: '/(.*)',
   handler: function (ctx) {
-    ctx.handlers = [App];
+    ctx.partials = [App];
     ctx.next();
   }
 });
@@ -186,12 +210,13 @@ router.route({
   method: 'GET',
   path: '/login',
   handler: function (ctx) {
+    if (this.state.user) {
+      return this.redirect('/home');
+    }
     this.state.page = 'login';
-
-    var Renderable = ctx.handlers.reduce(function (handler, Outer) {
-      return React.createElement(Outer, {handler: handler, router: this})
+    var Renderable = ctx.partials.reduce(function (view, Partial) {
+      return React.createElement(Partial, {router: this}, view)
     }, React.createElement(Login, {router: this}));
-
     this.render(Renderable);
   }
 });
@@ -200,12 +225,13 @@ router.route({
   method: 'GET',
   path: '/resend',
   handler: function (ctx) {
+    if (this.state.user) {
+      return this.redirect('/home');
+    }
     this.state.page = 'resend';
-
-    var Renderable = ctx.handlers.reduce(function (handler, Outer) {
-      return React.createElement(Outer, {handler: handler, router: this})
+    var Renderable = ctx.partials.reduce(function (view, Partial) {
+      return React.createElement(Partial, {router: this}, view)
     }, React.createElement(Resend, {router: this}));
-
     this.render(Renderable);
   }
 });
@@ -221,7 +247,8 @@ router.route({
       .send(body)
       .end(function (result) {
         if (!result.ok) {
-          return this.redirect('/login', {}, {error: result.body.error});
+          router.state.login = {error: result.body.error};
+          return this.redirect('/login');
         }
         this.state.user = body;
         this.redirect('/home');
@@ -237,10 +264,28 @@ router.route({
       return this.redirect('/login');
     }
     this.state.page = 'home';
-    var Renderable = ctx.handlers.reduce(function (handler, Outer) {
-      return React.createElement(Outer, {handler: handler, router: this})
+    var Renderable = ctx.partials.reduce(function (view, Partial) {
+      return React.createElement(Partial, {router: this}, view)
     }, React.createElement(Home, {router: this}));
     this.render(Renderable);
+  }
+});
+
+router.route({
+  method: 'POST',
+  path: '/logout',
+  handler: function (ctx) {
+    // superagent call
+    request
+      .post('/api/logout')
+      .end(function (result) {
+        if (!result.ok) {
+          return this.redirect('/home');
+        }
+        this.state.login = null;
+        this.state.user = null;
+        this.redirect('/login');
+    }.bind(this));
   }
 });
 
@@ -252,8 +297,10 @@ var t = require('tcomb');
 var Router = require('./lib/Router');
 var matcher = require('./lib/matcher');
 var EventEmitter = require('eventemitter3');
+var debug = require('debug');
 
 t.om = {
+  debug: debug,
   Router: function () {
     return new Router({
       matcher: matcher,
@@ -264,7 +311,7 @@ t.om = {
 
 module.exports = t;
 
-},{"./lib/Router":"/Users/giulio/Documents/Projects/github/tom/lib/Router.js","./lib/matcher":"/Users/giulio/Documents/Projects/github/tom/lib/matcher.js","eventemitter3":"/Users/giulio/Documents/Projects/github/tom/node_modules/eventemitter3/index.js","tcomb":"/Users/giulio/Documents/Projects/github/tom/node_modules/tcomb/index.js"}],"/Users/giulio/Documents/Projects/github/tom/lib/Method.js":[function(require,module,exports){
+},{"./lib/Router":"/Users/giulio/Documents/Projects/github/tom/lib/Router.js","./lib/matcher":"/Users/giulio/Documents/Projects/github/tom/lib/matcher.js","debug":"/Users/giulio/Documents/Projects/github/tom/node_modules/debug/browser.js","eventemitter3":"/Users/giulio/Documents/Projects/github/tom/node_modules/eventemitter3/index.js","tcomb":"/Users/giulio/Documents/Projects/github/tom/node_modules/tcomb/index.js"}],"/Users/giulio/Documents/Projects/github/tom/lib/Method.js":[function(require,module,exports){
 'use strict';
 
 var t = require('tcomb');
@@ -320,6 +367,10 @@ var Route = t.struct({
   name: t.maybe(t.Str),
   params: t.maybe(Params)
 }, 'Route');
+
+Route.prototype.toString = function() {
+  return t.util.format('[%s %s, Route]', this.method, this.path);
+};
 
 module.exports = Route;
 },{"./Method":"/Users/giulio/Documents/Projects/github/tom/lib/Method.js","tcomb":"/Users/giulio/Documents/Projects/github/tom/node_modules/tcomb/index.js"}],"/Users/giulio/Documents/Projects/github/tom/lib/Router.js":[function(require,module,exports){
@@ -409,12 +460,6 @@ t.util.mixin(Router.prototype, {
 
   post: function (url, body) {
     return this.dispatch(Request.of('POST', url, body));
-  },
-
-  debug: require('debug'),
-
-  toString: function() {
-    return t.util.format('[%s %s, Route]', this.method, this.path);
   }
 
 });
@@ -470,7 +515,7 @@ function toUrl(path, params, query) {
     }
   }
   if (query) {
-    url += (path.indexOf('?') === -1 ? '?' : '') + querystring.stringify(query)
+    url += (path.indexOf('?') === -1 ? '?' : '') + querystring.stringify(query);
   }
   return url;
 }
