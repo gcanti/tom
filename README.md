@@ -4,19 +4,27 @@ A complete routing library <del>for React</del>.
 
 # Features
 
-- hapijs like api for routes definition
+- routes definition with hapijs-like API
 - runs both on browser and on server
 - configurable state management
 - configurable ui target (React, others...)
-- simple nested ui management (a la react-router)
-- configurable location (hash, history)
-- configurable path to regexp implementation
+- nested ui management (a la react-router)
 - simple api:
   - `route(spec)`
   - `redirect(path, params, query)`
   - `get(url)`
   - `post(url, body)`
 - lightweight (~200 LOC)
+- configurable path to regexp implementation
+
+# Demo
+
+```
+git clone https://github.com/gcanti/tom.git
+cd tom
+npm install
+npm start
+```
 
 # Gist
 
@@ -180,15 +188,6 @@ router.route({
     this.render(Renderable);
   }
 });
-```
-
-# Demo
-
-```
-git clone https://github.com/gcanti/tom.git
-cd tom
-npm install
-npm start
 ```
 
 # API
