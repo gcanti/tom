@@ -6,7 +6,7 @@ var _ = require('underscore');
 var fs = require('fs');
 var express = require('express');
 var bodyParser = require('body-parser');
-var router = require('./lib/router.jsx');
+var router = require('./router.jsx');
 
 //
 // express app definition

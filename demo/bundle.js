@@ -2,8 +2,10 @@
 'use strict';
 
 var React = require('react');
-var router = require('./lib/router.jsx');
-var debug = require('debug')('Client');
+var router = require('./router.jsx');
+var HistoryLocation = require('../lib/HistoryLocation');
+
+window.router = router;
 
 // configure state
 router.state = window.state;
@@ -14,33 +16,15 @@ router.render = function (renderable) {
 };
 
 // set to false to get an old style app instead of an SPA
-var isSPA = true;
-if (isSPA) {
-
-  // hydrate the client forcing a React re-redering
-  router.get('/' + state.page);
-
-  // push in history everytime a GET occurs
-  router.emitter.on('dispatch', function (req) {
-    if (req.method === 'GET') {
-      history.pushState({url: req.url}, '', req.url);
-    }
-  });
-
-  // handle back / forward buttons
-  window.onpopstate = function (evt) {
-    if (evt.state) {
-      debug('onpopstate: ', evt.state);
-      router.get(evt.state.url);
-    }
-  };
+if (true) {
+  var location = new HistoryLocation(router).start();
 }
 
 // outputs debug messages to console
 require('debug').enable('*');
 
 
-},{"./lib/router.jsx":"/Users/giulio/Documents/Projects/github/tom/demo/lib/router.jsx","debug":"/Users/giulio/Documents/Projects/github/tom/node_modules/debug/browser.js","react":"/Users/giulio/Documents/Projects/github/tom/node_modules/react/react.js"}],"/Users/giulio/Documents/Projects/github/tom/demo/lib/components/App.jsx":[function(require,module,exports){
+},{"../lib/HistoryLocation":"/Users/giulio/Documents/Projects/github/tom/lib/HistoryLocation.js","./router.jsx":"/Users/giulio/Documents/Projects/github/tom/demo/router.jsx","debug":"/Users/giulio/Documents/Projects/github/tom/node_modules/debug/browser.js","react":"/Users/giulio/Documents/Projects/github/tom/node_modules/react/react.js"}],"/Users/giulio/Documents/Projects/github/tom/demo/components/App.jsx":[function(require,module,exports){
 'use strict';
 
 var React = require('react');
@@ -63,7 +47,7 @@ var App = React.createClass({displayName: "App",
 });
 
 module.exports = App;
-},{"react":"/Users/giulio/Documents/Projects/github/tom/node_modules/react/react.js"}],"/Users/giulio/Documents/Projects/github/tom/demo/lib/components/Home.jsx":[function(require,module,exports){
+},{"react":"/Users/giulio/Documents/Projects/github/tom/node_modules/react/react.js"}],"/Users/giulio/Documents/Projects/github/tom/demo/components/Home.jsx":[function(require,module,exports){
 'use strict';
 
 var React = require('react');
@@ -90,7 +74,7 @@ var Home = React.createClass({displayName: "Home",
 });
 
 module.exports = Home;
-},{"react":"/Users/giulio/Documents/Projects/github/tom/node_modules/react/react.js"}],"/Users/giulio/Documents/Projects/github/tom/demo/lib/components/Login.jsx":[function(require,module,exports){
+},{"react":"/Users/giulio/Documents/Projects/github/tom/node_modules/react/react.js"}],"/Users/giulio/Documents/Projects/github/tom/demo/components/Login.jsx":[function(require,module,exports){
 'use strict';
 
 var React = require('react');
@@ -143,7 +127,7 @@ var Login = React.createClass({displayName: "Login",
 });
 
 module.exports = Login;
-},{"react":"/Users/giulio/Documents/Projects/github/tom/node_modules/react/react.js"}],"/Users/giulio/Documents/Projects/github/tom/demo/lib/components/Resend.jsx":[function(require,module,exports){
+},{"react":"/Users/giulio/Documents/Projects/github/tom/node_modules/react/react.js"}],"/Users/giulio/Documents/Projects/github/tom/demo/components/Resend.jsx":[function(require,module,exports){
 'use strict';
 
 var React = require('react');
@@ -175,17 +159,16 @@ var Resend = React.createClass({displayName: "Resend",
 });
 
 module.exports = Resend;
-},{"react":"/Users/giulio/Documents/Projects/github/tom/node_modules/react/react.js"}],"/Users/giulio/Documents/Projects/github/tom/demo/lib/router.jsx":[function(require,module,exports){
+},{"react":"/Users/giulio/Documents/Projects/github/tom/node_modules/react/react.js"}],"/Users/giulio/Documents/Projects/github/tom/demo/router.jsx":[function(require,module,exports){
 'use strict';
 
 var React = require('react');
-var t = require('../..');
+var t = require('../');
 var App = require('./components/App.jsx');
 var Login = require('./components/Login.jsx');
 var Resend = require('./components/Resend.jsx');
 var Home = require('./components/Home.jsx');
 var request = require('superagent');
-var EventEmitter = require('eventemitter3');
 
 var router = new t.om.Router();
 
@@ -290,7 +273,7 @@ router.route({
 });
 
 module.exports = router;
-},{"../..":"/Users/giulio/Documents/Projects/github/tom/index.js","./components/App.jsx":"/Users/giulio/Documents/Projects/github/tom/demo/lib/components/App.jsx","./components/Home.jsx":"/Users/giulio/Documents/Projects/github/tom/demo/lib/components/Home.jsx","./components/Login.jsx":"/Users/giulio/Documents/Projects/github/tom/demo/lib/components/Login.jsx","./components/Resend.jsx":"/Users/giulio/Documents/Projects/github/tom/demo/lib/components/Resend.jsx","eventemitter3":"/Users/giulio/Documents/Projects/github/tom/node_modules/eventemitter3/index.js","react":"/Users/giulio/Documents/Projects/github/tom/node_modules/react/react.js","superagent":"/Users/giulio/Documents/Projects/github/tom/node_modules/superagent/lib/client.js"}],"/Users/giulio/Documents/Projects/github/tom/index.js":[function(require,module,exports){
+},{"../":"/Users/giulio/Documents/Projects/github/tom/index.js","./components/App.jsx":"/Users/giulio/Documents/Projects/github/tom/demo/components/App.jsx","./components/Home.jsx":"/Users/giulio/Documents/Projects/github/tom/demo/components/Home.jsx","./components/Login.jsx":"/Users/giulio/Documents/Projects/github/tom/demo/components/Login.jsx","./components/Resend.jsx":"/Users/giulio/Documents/Projects/github/tom/demo/components/Resend.jsx","react":"/Users/giulio/Documents/Projects/github/tom/node_modules/react/react.js","superagent":"/Users/giulio/Documents/Projects/github/tom/node_modules/superagent/lib/client.js"}],"/Users/giulio/Documents/Projects/github/tom/index.js":[function(require,module,exports){
 'use strict';
 
 var t = require('tcomb');
@@ -311,7 +294,52 @@ t.om = {
 
 module.exports = t;
 
-},{"./lib/Router":"/Users/giulio/Documents/Projects/github/tom/lib/Router.js","./lib/matcher":"/Users/giulio/Documents/Projects/github/tom/lib/matcher.js","debug":"/Users/giulio/Documents/Projects/github/tom/node_modules/debug/browser.js","eventemitter3":"/Users/giulio/Documents/Projects/github/tom/node_modules/eventemitter3/index.js","tcomb":"/Users/giulio/Documents/Projects/github/tom/node_modules/tcomb/index.js"}],"/Users/giulio/Documents/Projects/github/tom/lib/Method.js":[function(require,module,exports){
+},{"./lib/Router":"/Users/giulio/Documents/Projects/github/tom/lib/Router.js","./lib/matcher":"/Users/giulio/Documents/Projects/github/tom/lib/matcher.js","debug":"/Users/giulio/Documents/Projects/github/tom/node_modules/debug/browser.js","eventemitter3":"/Users/giulio/Documents/Projects/github/tom/node_modules/eventemitter3/index.js","tcomb":"/Users/giulio/Documents/Projects/github/tom/node_modules/tcomb/index.js"}],"/Users/giulio/Documents/Projects/github/tom/lib/HistoryLocation.js":[function(require,module,exports){
+'use strict';
+
+var t = require('tcomb');
+var Router = require('./Router');
+var debug = require('debug')('HistoryLocation');
+
+function HistoryLocation(router) {
+  this.router = new Router(router);
+  this.onPopState = function (evt) {
+    if (evt.state) {
+      debug('onPopState: ', evt.state);
+      router.get(evt.state.url);
+    }
+  };
+}
+
+HistoryLocation.prototype.start = function () {
+  // push in history everytime a GET occurs
+  this.router.emitter.on('dispatch', function (req) {
+    if (req.method === 'GET') {
+      history.pushState({url: req.url}, '', req.url);
+    }
+  });
+  // hydrate the client forcing a re-redering
+  router.get(location.href);
+  // handle back / forward buttons
+  if (window.addEventListener) {
+    window.addEventListener('popstate', this.onPopState);
+  } else {
+    window.attachEvent('popstate', this.onPopState);
+  }
+  return this;
+};
+
+HistoryLocation.prototype.stop = function () {
+  if (window.addEventListener) {
+    window.removeEventListener('popstate', this.onPopState);
+  } else {
+    window.removeEvent('popstate', this.onPopState);
+  }
+  return this;
+};
+
+module.exports = HistoryLocation;
+},{"./Router":"/Users/giulio/Documents/Projects/github/tom/lib/Router.js","debug":"/Users/giulio/Documents/Projects/github/tom/node_modules/debug/browser.js","tcomb":"/Users/giulio/Documents/Projects/github/tom/node_modules/tcomb/index.js"}],"/Users/giulio/Documents/Projects/github/tom/lib/Method.js":[function(require,module,exports){
 'use strict';
 
 var t = require('tcomb');
@@ -400,69 +428,64 @@ function Router(opts) {
   this.layers = {};
 }
 
-t.util.mixin(Router.prototype, {
+Router.prototype.route = function (route) {
+  route = new Route(route);
+  debug('def %s', route + '');
+  var layers = this.layers[route.method] = this.layers[route.method] || [];
+  layers.push(new Layer({
+    route: route,
+    match: this.matcher(route.path)
+  }));
+  return this;
+};
 
-  route: function (route) {
-    route = new Route(route);
-    debug('def %s', route + '');
-    var layers = this.layers[route.method] = this.layers[route.method] || [];
-    layers.push(new Layer({
-      route: route,
-      match: this.matcher(route.path)
-    }));
-    return this;
-  },
+Router.prototype.getLayers = function(method) {
+  return this.layers[method] ? this.layers[method].slice() : [];
+};
 
-  getLayers: function(method) {
-    return this.layers[method] ? this.layers[method].slice() : [];
-  },
+Router.prototype.dispatch = function(req) {
+  req = new Request(req);
+  debug('dispatching %s', req + '');
+  this.emitter.emit('dispatch', req);
+  var layers = this.getLayers(req.method);
+  debug('  %s layer(s) found', layers.length);
 
-  dispatch: function(req) {
-    req = new Request(req);
-    debug('dispatching %s', req + '');
-    this.emitter.emit('dispatch', req);
-    var layers = this.getLayers(req.method);
-    debug('  %s layer(s) found', layers.length);
+  var router = this;
+  var ctx = new Context(req, next);
 
-    var router = this;
-    var ctx = new Context(req, next);
-
-    function next() {
-      if (!layers.length) {
-        throw new Error(t.util.format(' match not found for %s', req + ''));
-      }
-      var layer = layers.shift();
-      var params = layer.match(req.path);
-      if (!params) {
-        return next();
-      }
-      debug('  match found: %s', layer.route + '');
-      ctx.params = params;
-      // call the handle with the router as `this`
-      layer.route.handler.call(router, ctx);
+  function next() {
+    if (!layers.length) {
+      throw new Error(t.util.format(' match not found for %s', req + ''));
     }
-
-    next();
-
-    return this;
-  },
-
-  get: function (url) {
-    return this.dispatch(Request.of('GET', url));
-  },
-
-  // alias
-  redirect: function (path, params, query) {
-    var url = toUrl(path, params, query);
-    debug('redirecting to %s', url);
-    return this.get(url);
-  },
-
-  post: function (url, body) {
-    return this.dispatch(Request.of('POST', url, body));
+    var layer = layers.shift();
+    var params = layer.match(req.path);
+    if (!params) {
+      return next();
+    }
+    debug('  match found: %s', layer.route + '');
+    ctx.params = params;
+    // call the handle with the router as `this`
+    layer.route.handler.call(router, ctx);
   }
 
-});
+  next();
+
+  return this;
+};
+
+Router.prototype.get = function (url) {
+  return this.dispatch(Request.of('GET', url));
+};
+
+Router.prototype.redirect = function (path, params, query) {
+  var url = toUrl(path, params, query);
+  debug('redirecting to %s', url);
+  return this.get(url);
+};
+
+Router.prototype.post = function (url, body) {
+  return this.dispatch(Request.of('POST', url, body));
+};
 
 module.exports = Router;
 },{"./Method":"/Users/giulio/Documents/Projects/github/tom/lib/Method.js","./Request":"/Users/giulio/Documents/Projects/github/tom/lib/Request.js","./Route":"/Users/giulio/Documents/Projects/github/tom/lib/Route.js","./toUrl":"/Users/giulio/Documents/Projects/github/tom/lib/toUrl.js","debug":"/Users/giulio/Documents/Projects/github/tom/node_modules/debug/browser.js","tcomb":"/Users/giulio/Documents/Projects/github/tom/node_modules/tcomb/index.js"}],"/Users/giulio/Documents/Projects/github/tom/lib/matcher.js":[function(require,module,exports){

@@ -1,11 +1,9 @@
 A complete routing library <del>for React</del>.
 
-**Work In progress...**
-
 # Features
 
-- routes definition with hapijs-like API
-- runs both on browser and on server
+- routes definition with hapi-like API
+- runs both client-side and server-side
 - configurable state management
 - configurable ui target (React, others...)
 - nested ui management (a la react-router)
@@ -15,7 +13,8 @@ A complete routing library <del>for React</del>.
   - `get(url)`
   - `post(url, body)`
 - lightweight (~200 LOC)
-- configurable path to regexp implementation
+- injectable path to regexp implementation
+- injectable emitter implementation
 
 # Demo
 
@@ -212,7 +211,7 @@ A `Request` is an (immutable) object containing the data associated to a url cal
 Helper `Request` factory that handles the `path` field:
 
 ```js
-(method: Method, url: Str, body: ?Obj) -> Request
+(method: Method, url: Str, body: ?Obj) => Request
 ```
 
 ## Context
@@ -226,7 +225,7 @@ A `Context` is an object passed in a route handler:
 {
   req: Request,
   params: Obj, // contains the path params: {userId: '1'}
-  next(): () -> Nil // exec next middleware
+  next(): () => Nil // exec next middleware
 }
 ```
 
@@ -235,7 +234,7 @@ A `Context` is an object passed in a route handler:
 ```js
 var Router = require('tom/lib/Router');
 var router = new Router({
-  matcher: t.Str -> (t.Str -> ?t.Obj)
+  matcher: (t.Str) => ((t.Str) => ?t.Obj)
   emitter: EventEmitter
 });
 ```
@@ -259,9 +258,9 @@ function matcher(path) {
 ```js
 router.route({
   method: "GET" | "POST",
-  path: t.Str,
+  path: Str,
   // function (ctx: Context) {}, `this` is the router
-  handler: t.func(Context, Nil)
+  handler: (Context) => Nil
 });
 ```
 

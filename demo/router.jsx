@@ -1,13 +1,12 @@
 'use strict';
 
 var React = require('react');
-var t = require('../..');
+var t = require('../');
 var App = require('./components/App.jsx');
 var Login = require('./components/Login.jsx');
 var Resend = require('./components/Resend.jsx');
 var Home = require('./components/Home.jsx');
 var request = require('superagent');
-var EventEmitter = require('eventemitter3');
 
 var router = new t.om.Router();
 
