@@ -1,22 +1,29 @@
 A complete routing library <del>for React</del>.
 
+# The Idea
+
+UIs should be state projections, this router handles state transitions and **then** the view choices.
+
 # Features
 
-- routes definition with hapi-like API
+- GETs and **POSTs** abstraction
 - runs both client-side and server-side
+- hapi-like routes definition (endpoints and middlewares)
 - configurable state management
 - configurable ui target (React, others...)
-- nested ui management (a la react-router)
+- opt-in management of nested views (a la react-router)
 - simple api:
   - `route(spec)`
   - `redirect(path, params, query)`
   - `get(url)`
   - `post(url, body)`
-- lightweight (~200 LOC)
-- injectable path to regexp implementation
-- injectable emitter implementation
+- lightweight (~250 LOC)
+- injectable path to regexp implementation (default [path-to-regexp](https://github.com/pillarjs/path-to-regexp))
+- injectable emitter implementation (default [eventemitter3](https://github.com/primus/eventemitter3))
 
 # Demo
+
+Backend: [expressjs](http://expressjs.com)
 
 ```
 git clone https://github.com/gcanti/tom.git
@@ -34,10 +41,6 @@ var React = require('react');
 var t = require('tom');
 
 var router = new t.om.Router();
-
-//
-// routes
-//
 
 router.route({
   method: 'GET',
@@ -60,10 +63,6 @@ router.route({
     this.redirect('/all');
   }
 });
-
-//
-// ui definition
-//
 
 var App = React.createClass({
 
@@ -95,11 +94,10 @@ client.js
 var React = require('react');
 var router = require('./myrouter');
 
-// initialise state
-// windows? see "Server side rendering"
+// configure state (`windows`? see "Server side rendering")
 router.state = window.state || [];
 
-// configure ui target
+// configure rendering
 router.render = function (renderable) {
   React.render(renderable, document.getElementById('app'));
 };
