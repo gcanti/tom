@@ -1,9 +1,5 @@
 A complete routing library <del>for React</del>.
 
-# The Idea
-
-UIs should be state projections, this router handles state transitions and **then** the view choices.
-
 # Features
 
 - GETs and **POSTs** abstraction
