@@ -3,21 +3,28 @@ A complete routing library <del>for React</del>.
 # Features
 
 - GETs and **POSTs** abstraction
-- runs both client-side and server-side
-- hapi-like routes definition (endpoints and middlewares)
+- write links and forms like you'd do in an old style web
+- runs both client-side and server-side ("isomorphic")
+- hapi-like routes definition
+- middlewares
 - configurable state management
 - configurable ui target (React, others...)
 - opt-in management of nested views (a la react-router)
 - simple api:
-  - `route(spec)`
-  - `redirect(path, params, query)`
+  - `route(options)`
+  - `redirect(path, params?, query?)`
   - `get(url)`
-  - `post(url, body)`
+  - `post(url, body?)`
 - lightweight (~250 LOC)
-- injectable path to regexp implementation (default [path-to-regexp](https://github.com/pillarjs/path-to-regexp))
+- injectable path to regexp implementation (default [path-to-regexp](https://github.com/pillarjs/path-to-regexp), used by the next version of express.js)
 - injectable emitter implementation (default [eventemitter3](https://github.com/primus/eventemitter3))
 
 # Demo
+
+Real world use case, it contains 3 pages:
+  - login
+  - resend (password)
+  - home
 
 Backend: [expressjs](http://expressjs.com)
 
@@ -39,6 +46,7 @@ var t = require('tom');
 var router = new t.om.Router();
 
 router.route({
+  // get all todos
   method: 'GET',
   path: '/all',
   handler: function (ctx) {
@@ -46,7 +54,9 @@ router.route({
   }
 });
 
+// tom also provides an abstraction for POSTs
 router.route({
+  // add new todo
   method: 'POST',
   path: '/add',
   handler: function (ctx) {
@@ -62,7 +72,8 @@ router.route({
 
 var App = React.createClass({
 
-  add: function () {
+  add: function (evt) {
+    evt.preventDefault();
     var title = this.refs.input.getDOMNode().value.trim();
     if (title) {
       this.props.router.post('/add', {title: title});
@@ -70,11 +81,16 @@ var App = React.createClass({
   },
 
   render: function () {
+    var state = this.props.router.state;
     return (
       <div>
-        <pre>{JSON.stringify(this.props.state, null, 2)}</pre>
-        <input type="text" ref="input"/>
-        <button onClick={this.add}>Add</button>
+        <pre>{JSON.stringify(state, null, 2)}</pre>
+        {/* if JavaScript is disabled, fallback to old style form POST */}
+        <form action="/add" method="POST">
+          <input type="text" ref="input"/>
+          {/* if JavaScript is enabled, progressive enhancement */}
+          <button onClick={this.add}>Add</button>
+        </form>
       </div>
     );
   }
@@ -88,11 +104,12 @@ client.js
 
 ```js
 var React = require('react');
+// the same router for client-side and server-side
 var router = require('./myrouter');
 var HistoryLocation = require('tom/lib/HistoryLocation');
 
 // configure state (`windows`? see "Server side rendering")
-router.state = window.state || [];
+router.state = window.state;
 
 // configure rendering
 router.render = function (renderable) {
@@ -100,7 +117,7 @@ router.render = function (renderable) {
 };
 
 // configure location (main entry point)
-var location = new HistoryLocation(router).start();
+new HistoryLocation(router).start();
 ```
 
 # Server side rendering
@@ -109,6 +126,7 @@ server.js
 
 ```js
 var app = express();
+// the same router for client-side and server-side
 var router = require('./myrouter');
 
 // define the logic to retrive the user state

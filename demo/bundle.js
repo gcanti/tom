@@ -18,6 +18,7 @@ router.render = function (renderable) {
 
 //
 // start client
+// This will force a React re-rendering
 //
 new HistoryLocation(router).start();
 
