@@ -89,6 +89,7 @@ client.js
 ```js
 var React = require('react');
 var router = require('./myrouter');
+var HistoryLocation = require('tom/lib/HistoryLocation');
 
 // configure state (`windows`? see "Server side rendering")
 router.state = window.state || [];
@@ -98,6 +99,8 @@ router.render = function (renderable) {
   React.render(renderable, document.getElementById('app'));
 };
 
+// configure location (main entry point)
+var location = new HistoryLocation(router).start();
 ```
 
 # Server side rendering

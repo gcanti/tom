@@ -53,7 +53,7 @@ function logout() {
 // endpoints
 //------------
 
-// catch all gets and forward them to the router
+// catch all gets and forward them to the tom router
 app.get('/*', function (req, res) {
   router.render = function (renderable) {
     res.send(template({
