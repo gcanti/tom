@@ -10,7 +10,7 @@ var request = require('superagent');
 
 var router = new t.om.Router();
 
-router.route({
+router.push({
   method: 'GET',
   path: '/',
   handler: function (ctx) {
@@ -18,7 +18,7 @@ router.route({
   }
 });
 
-router.route({
+router.push({
   method: 'GET',
   path: '/(.*)',
   handler: function (ctx) {
@@ -27,7 +27,7 @@ router.route({
   }
 });
 
-router.route({
+router.push({
   method: 'GET',
   path: '/login',
   handler: function (ctx) {
@@ -42,7 +42,7 @@ router.route({
   }
 });
 
-router.route({
+router.push({
   method: 'GET',
   path: '/resend',
   handler: function (ctx) {
@@ -57,7 +57,7 @@ router.route({
   }
 });
 
-router.route({
+router.push({
   method: 'POST',
   path: '/login',
   handler: function (ctx) {
@@ -77,7 +77,7 @@ router.route({
   }
 });
 
-router.route({
+router.push({
   method: 'GET',
   path: '/home',
   handler: function (ctx) {
@@ -92,7 +92,7 @@ router.route({
   }
 });
 
-router.route({
+router.push({
   method: 'POST',
   path: '/logout',
   handler: function (ctx) {
