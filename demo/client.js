@@ -4,6 +4,8 @@ var React = require('react');
 var router = require('./router.jsx');
 var HistoryLocation = require('../lib/HistoryLocation');
 
+window.React = React;
+
 // outputs debug messages to console
 require('debug').enable('*');
 

@@ -12,17 +12,17 @@ var router = require('./router.jsx');
 // express app definition
 //
 
-var app = express();
+var server = express();
 
 // load the bootstrap page
 var template = _.template(fs.readFileSync(__dirname + '/index.html', 'utf-8'));
 
 // assets
-app.use('/assets', express.static(__dirname));
+server.use('/assets', express.static(__dirname));
 
 // middlewares
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+server.use(bodyParser.json());
+server.use(bodyParser.urlencoded({ extended: true }));
 
 //
 // state management
@@ -53,12 +53,12 @@ function logout() {
 // endpoints
 //------------
 
-// catch all gets and forward them to the tom router
-app.get('/*', function (req, res) {
-  router.render = function (renderable) {
+// catch all gets and forward them to the router
+server.get('/*', function (req, res) {
+  router.render = function (renderable, state) {
     res.send(template({
       ui: React.renderToString(renderable),
-      state: JSON.stringify(router.state)
+      state: JSON.stringify(state)
     }));
   };
   router.get(req.originalUrl);
@@ -68,7 +68,7 @@ app.get('/*', function (req, res) {
 // JSON endpoints
 //
 
-app.post('/api/login', function (req, res) {
+server.post('/api/login', function (req, res) {
   var err = login(req.body.email, req.body.password);
   if (err) {
     res.status(500).send({'error': 'invalid username / password'});
@@ -77,7 +77,7 @@ app.post('/api/login', function (req, res) {
   }
 });
 
-app.post('/api/logout', function (req, res) {
+server.post('/api/logout', function (req, res) {
   logout();
   res.status(200).send({});
 });
@@ -88,7 +88,7 @@ app.post('/api/logout', function (req, res) {
 // disabled javascript)
 //
 
-app.post('/login', function (req, res) {
+server.post('/login', function (req, res) {
   var error = login(req.body.email, req.body.password);
   if (error) {
     router.state.login = {error: error};
@@ -98,7 +98,7 @@ app.post('/login', function (req, res) {
   }
 });
 
-app.post('/logout', function (req, res) {
+server.post('/logout', function (req, res) {
   logout();
   res.redirect('/login');
 });
@@ -107,6 +107,6 @@ app.post('/logout', function (req, res) {
 // start server
 //
 
-app.listen(5000, function() {
+server.listen(5000, function() {
   console.log('Express server listening on localhost:5000');
 });

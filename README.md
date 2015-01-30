@@ -5,13 +5,13 @@ A complete routing library <del>for React</del>.
 - GETs and **POSTs** abstraction
 - write links and forms like you'd do in an old style web
 - runs both client-side and server-side ("isomorphic")
-- hapi-like routes definition
+- hapijs-like route definition
 - middlewares
 - configurable state management
 - configurable ui target (React, others...)
-- opt-in management of nested views (a la react-router)
+- easy management of nested views (a la react-router)
 - simple api:
-  - `route(options)`
+  - `push(options)`
   - `redirect(path, params?, query?)`
   - `get(url)`
   - `post(url, body?)`
@@ -23,8 +23,8 @@ A complete routing library <del>for React</del>.
 
 Real world use case, it contains 3 pages:
   - login
-  - resend (password)
-  - home
+  - resend password
+  - home (logged only)
 
 Backend: [expressjs](http://expressjs.com)
 
@@ -45,7 +45,7 @@ var t = require('tom');
 
 var router = new t.om.Router();
 
-router.route({
+router.push({
   // get all todos
   method: 'GET',
   path: '/all',
@@ -55,7 +55,7 @@ router.route({
 });
 
 // tom also provides an abstraction for POSTs
-router.route({
+router.push({
   // add new todo
   method: 'POST',
   path: '/add',
