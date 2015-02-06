@@ -28,37 +28,54 @@ server.use(bodyParser.urlencoded({ extended: true }));
 // state management
 //
 
-// initial state
-router.state = {
-  page: 'login'
+// globale state
+var globalState = {
+  'user@domain.com': {page: 'login'}
 };
 
 function login(email, password) {
-  if (email === 'user@domain.com' && password === 'password') {
-    router.state.login = null;
-    router.state.user = {
-      email: email,
-      password: password
-    };
-  } else {
+  if (email !== 'user@domain.com' && password !== 'password') {
     return 'invalid username / password';
   }
+
+  globalState['user@domain.com'] = {
+    page: 'home',
+    login: null,
+    user: {
+      email: email,
+      password: password
+    }
+  };
 }
 
 function logout() {
-  router.state.user = null;
+  globalState['user@domain.com'] = {
+    page: 'login',
+    login: null,
+    user: null
+  };
 }
 
 //------------
 // endpoints
 //------------
 
+function mixin(a, b) {
+  for (var k in b) { a[k] = b[k]; }
+}
+
 // catch all gets and forward them to the router
 server.get('/*', function (req, res) {
-  router.render = function (renderable, state) {
+  router.getState = function () {
+    return globalState['user@domain.com']; // TODO implement cookie auth
+  };
+  router.setState = function (state) {
+    return mixin(globalState['user@domain.com'], state);
+  };
+  router.render = function (renderable) {
     res.send(template({
       ui: React.renderToString(renderable),
-      state: JSON.stringify(state)
+      state: JSON.stringify(this.getState())
     }));
   };
   router.get(req.originalUrl);
@@ -71,15 +88,16 @@ server.get('/*', function (req, res) {
 server.post('/api/login', function (req, res) {
   var err = login(req.body.email, req.body.password);
   if (err) {
-    res.status(500).send({'error': 'invalid username / password'});
-  } else {
-    res.status(200).send({});
+    return res.status(401).send({
+      error: 'invalid username / password'
+    });
   }
+  res.sendStatus(200);
 });
 
 server.post('/api/logout', function (req, res) {
   logout();
-  res.status(200).send({});
+  res.sendStatus(200);
 });
 
 //
@@ -91,11 +109,13 @@ server.post('/api/logout', function (req, res) {
 server.post('/login', function (req, res) {
   var error = login(req.body.email, req.body.password);
   if (error) {
-    router.state.login = {error: error};
-    res.redirect('/login');
-  } else {
-    res.redirect('/home');
+    globalState['user@domain.com'] = {
+      page: 'login',
+      login: {error: error}
+    };
+    return res.redirect('/login');
   }
+  res.redirect('/home');
 });
 
 server.post('/logout', function (req, res) {

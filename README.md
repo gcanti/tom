@@ -41,9 +41,9 @@ myrouter.js
 
 ```js
 var React = require('react');
-var t = require('tom');
+var Router = require('tom').Router;
 
-var router = new t.om.Router();
+var router = new Router();
 
 router.push({
   // get all todos
@@ -129,12 +129,12 @@ var app = express();
 // the same router for client-side and server-side
 var router = require('./myrouter');
 
-// define the logic to retrive the user state
-var getStateByUser = ...
-
 // catch all route
 app.get('/*', function (req, res) {
-  router.state = getStateByUser(req.cookies.id);
+  // define the logic to retrive the user state
+  router.getState = function () {
+    return {...};
+  };
   router.render = function (renderable) {
     res.render('index', {
       ui: React.renderToString(renderable),

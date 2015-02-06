@@ -13,7 +13,7 @@ var Home = React.createClass({
     return (
       <div className="col-md-4 col-md-offset-4">
         <h3>Home</h3>
-        <p>Welcome {this.props.router.state.user.email}</p>
+        <p>Welcome {this.props.router.getState().user.email}</p>
         <form action="/logout" method="POST">
           <button className="btn btn-primary" onClick={this.doLogout}>Log out</button>
         </form>

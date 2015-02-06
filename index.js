@@ -1,12 +1,11 @@
 'use strict';
 
-var t = require('tcomb');
 var Router = require('./lib/Router');
 var matcher = require('./lib/matcher');
 var EventEmitter = require('eventemitter3');
 var debug = require('debug');
 
-t.om = {
+module.exports = {
   debug: debug,
   Router: function () {
     return new Router({
@@ -15,5 +14,3 @@ t.om = {
     });
   }
 };
-
-module.exports = t;

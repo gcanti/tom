@@ -9,8 +9,17 @@ window.React = React;
 // outputs debug messages to console
 require('debug').enable('*');
 
+function mixin(a, b) {
+  for (var k in b) { a[k] = b[k]; }
+}
+
 // configure state
-router.state = window.state;
+router.getState = function () {
+  return window.state;
+};
+router.setState = function (state) {
+  return mixin(window.state, state);
+};
 
 // configure rendering
 router.render = function (renderable) {

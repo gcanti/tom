@@ -19,7 +19,7 @@ var Login = React.createClass({
   },
 
   getMessage: function () {
-    var state = this.props.router.state;
+    var state = this.props.router.getState();
     return state.login && state.login.error ?
       <div className="alert alert-danger">{state.login.error}</div> :
       null;
