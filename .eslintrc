@@ -1,0 +1,17 @@
+{
+  "parser": "babel-eslint",
+  "env": {
+    "browser": true,
+    "node": true
+  },
+  "ecmaFeatures": {
+    "modules": true,
+    "es6": true
+  },
+  "rules": {
+    "new-cap": 0,
+    "no-shadow": 0,
+    "quotes": [2, "single"],
+    "comma-dangle": "always"
+  }
+}
