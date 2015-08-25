@@ -54,7 +54,7 @@ var router = new Router({
 
 If the order in which the routes are scanned is important.
 
-Example:
+**Example**
 
 ```js
 router
@@ -78,6 +78,27 @@ will call user(context) with the following argument as context:
   myvalue: 1
 }
 */
+```
+
+## Adding middlewares
+
+```js
+function userMiddleware(next) {
+  return function (context) {
+    context.user = {id: context.params.id};
+    next(context);
+  };
+}
+
+function user(context) {
+  console.log(context.user); // will output { id: '123' }
+}
+
+var router = new Router({
+  '/user/:id': userMiddleware(user)
+});
+
+router.dispatch('/user/123');
 ```
 
 ## Building a hash router
