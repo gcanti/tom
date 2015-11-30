@@ -80,7 +80,7 @@ will call user(context) with the following argument as context:
 */
 ```
 
-## Adding middlewares
+## Adding middleware 
 
 ```js
 function userMiddleware(next) {
