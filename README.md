@@ -1,269 +1,100 @@
-Because routing and state management should be simple.
+Type-safe store for unidirectional data flow.
 
-**Contents**
+This library relies on [tcomb](https://github.com/gcanti/tcomb) in order to implement type safety.
 
-- [Router](#router)
-- [App](#app)
+# Setup
 
-# Router
-
-Minimalistic universal router.
-
-## API
-
-### constructor(routes)
-
-Where `routes: {[key: String]: Function}` is a dictionary `path -> handler` and `handler` has the following signature:
-
-```js
-(context: Context) -> any
+```sh
+npm install tom --save
 ```
 
-`Context` is a struct with the following fields:
+# Differences from Redux
 
-- `path: String`
-- `params: : {[key: String]: String}`
-- `query: {[key: String]: String}`
-- `payload: Any` (optional)
+- implemented with rx.js
+- handles side effects
+- models, events and effects are type-checked
+- events are not plain objects nor require a `type` field
+- model changes are expressed in a declarative way (*patches*)
+- listeners of `subscribe` are called with a `model` argument containing the current snapshot
+- no `combineReducers`, events always handle the whole model
 
-**Example**
+# Workflow
+
+- define the `Model` type
+- define the `Effect` type
+- define the `Event` type
+- define the `initialState` (initial model + initial effect)
+- create the store with the `create` API
+
+**The Model**
 
 ```js
-var Router = require('tom').Router;
-
-// define some handlers
-
-function home(context) {
-  ...
-}
-
-function user(context) {
-  var userId = context.params.id;
-  ...
-}
-
-// define the router
-
-var router = new Router({
-  '/home': home,
-  '/user/:id': user
-});
+const Integer = t.refinement(t.Number, n => n % 1 === 0, 'Integer')
+const Model = Integer
 ```
 
-### addRoute(path, handler)
-
-If the order in which the routes are scanned is important.
-
-**Example**
+**The `Effect` type**
 
 ```js
-router
-  .addRoute('/home', home);
-  .addRoute('/user/:id', user);
+const Effect = t.Nil // no side effects in this example (see the "How to handle effects" example below)
 ```
 
-### dispatch(url, [context])
-
-**Example**
+**The `Event` type**
 
 ```js
-router.dispatch('/user/123?q=1', { myvalue: 1 });
+const PositiveInteger = t.refinement(Integer, n => n >= 0, 'PositiveInteger')
 
-/*
-will call user(context) with the following argument as context:
-{
-  path: '/user/123',
-  params: { id: '123' },
-  query: { q: '1' },
-  myvalue: 1
-}
-*/
-```
+const Increment = t.struct({
+  step: PositiveInteger
+}, 'Increment')
 
-## Adding middlewares
-
-```js
-function userMiddleware(next) {
-  return function (context) {
-    context.user = {id: context.params.id};
-    next(context);
-  };
-}
-
-function user(context) {
-  console.log(context.user); // will output { id: '123' }
-}
-
-var router = new Router({
-  '/user/:id': userMiddleware(user)
-});
-
-router.dispatch('/user/123');
-```
-
-## Building a hash router
-
-```js
-var state = require('./state');
-var router = new Router(...);
-
-window.onhashchange = function () {
-  const url = location.hash.substr(1);
-  if (url !== state.url) {
-    router.dispatch(url);
+// for each event define a toPatch() method returning a declarative patch to apply to the current state
+// see tcomb's immutability helpers
+Increment.prototype.toPatch = function(state) {
+  return {
+    model: { $set: state.model + this.step }
   }
-};
+}
 
-state.on('change', function (state) {
-  location.hash = '#' + url;
-});
+const Decrement = t.struct({
+  step: PositiveInteger
+}, 'Decrement')
+
+Decrement.prototype.toPatch = function(state) {
+  return {
+    model: { $set: state.model - this.step }
+  }
+}
+
+// the Event type is the union of all events
+const Event = t.union([Increment, Decrement], 'Event')
 ```
 
-# App
-
-Type checked state management.
-
-The main primitive is the **patch function**, i.e. a function with the following signature:
-
-```
-(state) => state // patch functions are naturally composable
-```
-
-Data flow:
-
-```
-State -> Event -> patch function -> State
-```
-
-For example:
-
-```
-[] -> AddTodoEvent -> (todos) => todos.concat({text: 'a todo'}) -> [{text: 'a todo'}]
-```
-
-**Example (ES6)**
+**The `initialState`**
 
 ```js
-import { App, t } from '../index';
-import _ from 'lodash';
-
-//
-// define the state type
-//
-
-const Todo = t.struct({
-  id: t.String,         // required string
-  text: t.String,       // required string
-  completed: t.Boolean  // required boolean
-}, 'Todo');
-
-const State = t.struct({
-  todos: t.list(Todo)   // a list of Todo objects
-}, 'State');
-
-//
-// define the initial state
-//
-
-const initialState = State({
-  todos: [
-    {
-      id: '1',
-      text: 'Consider using tom',
-      completed: true,
-    },
-    {
-      id: '2',
-      text: 'Keep all state in a single tree',
-      completed: false
-    }
-  ]
-});
-
-//
-// define the events and toPatch functions
-//
-
-const AddTodoEvent = t.struct({
-  id: t.String,
-  text: t.String,
-  completed: t.Boolean
-});
-
-AddTodoEvent.prototype.toPatch = function () {
-  return (state) => t.update(state, {
-    todos: { $push: [this] }
-  });
-};
-
-const EditTodoEvent = t.struct({
-  id: t.String,
-  text: t.String
-});
-
-EditTodoEvent.prototype.toPatch = function editTodo() {
-  return (state) => {
-    const index = _.findIndex(state.todos, { id: this.id });
-    return t.update(state, {
-      todos: {
-        [index]: {
-          text: { $set: this.text }
-        }
-      }
-    });
-  };
-};
-
-var Event = t.union([AddTodoEvent, EditTodoEvent], 'Event');
-
-//
-// define your app
-//
-
-class MyApp extends App {
-
-  addTodo(id, text) {
-    this.process(AddTodoEvent({ id, text, completed: false }));
-  }
-
-  editTodo(id, text) {
-    this.process(EditTodoEvent({ id, text }));
-  }
-
+const initialState = {
+  model: 0
 }
-
-const app = new MyApp(initialState, Event);
-
-app.on('change', (state) => {
-  console.log('app state changed to ', state);
-});
-
-app.addTodo('3', 'another todo');
-app.editTodo('3', 'another todo updated');
 ```
 
-## Middlewares (ES7)
+**The store**
 
 ```js
-function logger(App) {
-  const process = App.prototype.process;
-  App.prototype.process = function (event) {
-    console.log('state before: ', this.state);
-    process.call(this, event);
-    console.log('state after: ', this.state);
-  };
-}
-
-@logger
-class MyApp extends App {
-
-  addTodo(id, text) {
-    this.process(AddTodoEvent({ id, text, completed: false }));
-  }
-
-  editTodo(id, text) {
-    this.process(EditTodoEvent({ id, text }));
-  }
-
-}
+const store = create(Model, Event, Effect, initialState)
 ```
+
+Models, events and effects are type-checked:
+
+```js
+store.dispatch(Increment({ step: -1 })) // => throws [tcomb] Invalid value -1 supplied to Increment/step: PositiveInteger
+
+store.dispatch(Increment({ step: 'a' })) // => throws [tcomb] Invalid value "a" supplied to Increment/step: Number
+
+store.dispatch(1) // => throws [tcomb] Invalid value 1 supplied to Event (no constructor returned by dispatch)
+```
+
+# Examples
+
+- [A type-checked counter](examples/counter/index.js)
+- [How to handle effects](examples/effects/index.js)
