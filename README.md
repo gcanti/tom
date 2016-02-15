@@ -11,7 +11,7 @@ npm install tom --save
 # Differences from Redux
 
 - implemented with rx.js
-- handles side effects
+- handles side effects in a declarative way (*effects*)
 - models, events and effects are type-checked
 - events are not plain objects nor require a `type` field
 - model changes are expressed in a declarative way (*patches*)
@@ -26,7 +26,7 @@ npm install tom --save
 - define the `initialState` (initial model + initial effect)
 - create the store with the `create` API
 
-**The Model**
+**The `Model` type**
 
 ```js
 const Integer = t.refinement(t.Number, n => n % 1 === 0, 'Integer')
@@ -93,6 +93,12 @@ store.dispatch(Increment({ step: 'a' })) // => throws [tcomb] Invalid value "a" 
 
 store.dispatch(1) // => throws [tcomb] Invalid value 1 supplied to Event (no constructor returned by dispatch)
 ```
+
+# Built-in effects
+
+- [HashHistoryEffect](lib/HashHistoryEffect.js)
+- [ParallelEffect](lib/ParallelEffect.js)
+- [SequenceEffect](lib/SequenceEffect.js)
 
 # Examples
 

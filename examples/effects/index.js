@@ -19,7 +19,7 @@ export const ConsoleEffect = t.struct({
 }, 'ConsoleEffect')
 
 // toObservable :: Store -> Observable<Event>
-ConsoleEffect.prototype.toObservable = function() {
+ConsoleEffect.prototype.toObservable = function(/*store*/) {
   return Rx.Observable.of(null)
     .do(() => console.log(this.message)) // eslint-disable-line
 }
