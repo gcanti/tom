@@ -1,7 +1,7 @@
 {
   "name": "tom",
   "version": "0.4.0",
-  "description": "Type-safe unidirectional data flow",
+  "description": "Elmish type-safe architecture in JavaScript with effects handling",
   "main": "lib/index.js",
   "files": [
     "lib"
