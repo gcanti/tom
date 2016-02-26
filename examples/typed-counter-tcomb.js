@@ -66,7 +66,7 @@ const counter = {
     const cancel$ = event$.filter(e => e === 'CANCEL')
     switch (effect) {
     case 'INCREMENT_EFFECT' :
-      return Rx.Observable.just('INCREMENT').delay(2000).takeUntil(cancel$) // do not increment if a CANCEL event is emitted
+      return Rx.Observable.just('INCREMENT').delay(2000).takeUntil(cancel$)
     case 'DECREMENT_EFFECT' :
       return Rx.Observable.just('DECREMENT').delay(2000).takeUntil(cancel$)
     }

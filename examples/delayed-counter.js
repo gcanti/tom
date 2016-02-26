@@ -14,7 +14,7 @@ const dalayedCounter = {
     case 'DECREMENT' :
       return { model: model - 1 }
     case 'INCREMENT_REQUEST' :
-      return { model, effect: 'INCREMENT_EFFECT' } // declarative effects
+      return { model, effect: 'INCREMENT_EFFECT' }
     case 'DECREMENT_REQUEST' :
       return { model, effect: 'DECREMENT_EFFECT' }
     default :
@@ -37,7 +37,7 @@ const dalayedCounter = {
   run(effect) {
     switch (effect) {
     case 'INCREMENT_EFFECT' :
-      return Rx.Observable.just('INCREMENT').delay(1000) // effects may return a stream of events
+      return Rx.Observable.just('INCREMENT').delay(1000)
     case 'DECREMENT_EFFECT' :
       return Rx.Observable.just('DECREMENT').delay(1000)
     }

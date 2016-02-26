@@ -125,9 +125,9 @@ view$.subscribe(view => ReactDOM.render(view, document.getElementById('app')))
 
 ## Type safety
 
-- [Typed counter (tcomb)](examples/typed-counter-tcomb.js)
-- [Typed counter (flow)](examples/typed-counter-flow.js)
-- [Typed counter (typescript)](examples/typed-counter-typescript.tsx)
+- [Runtime type checking (tcomb)](examples/typed-counter-tcomb.js)
+- [Static type checking (flow)](examples/typed-counter-flow.js)
+- [Static type checking (typescript)](examples/typed-counter-typescript.tsx)
 
 ## Apps as react components
 
