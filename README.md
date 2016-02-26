@@ -1,106 +1,134 @@
-Type-safe store for unidirectional data flow.
-
-This library relies on [tcomb](https://github.com/gcanti/tcomb) in order to implement type safety.
-
 # Setup
 
 ```sh
 npm install tom --save
 ```
 
-# Differences from Redux
+# Features
 
-- implemented with rx.js
-- handles side effects in a declarative way (*effects*)
-- models, events and effects are type-checked
-- events are not plain objects nor require a `type` field
-- model changes are expressed in a declarative way (*patches*)
-- listeners of `subscribe` are called with a `model` argument containing the current snapshot
-- no `combineReducers`, events always handle the whole model
+- Elmish architecture
+- Handles side effects in a declarative way
+- Models, events and effects may be (static or runtime) type-checked
+- Events are not required to be plain objects nor require a type field
 
 # Workflow
 
-- define the `Model` type
-- define the `Effect` type
-- define the `Event` type
-- define the `initialState` (initial model + initial effect)
-- create the store with the `create` API
+## App configuration
 
-**The `Model` type**
+Define an object `config` with the following keys:
+
+**init**. a function returning the initial state (a *state* is an object with a required key `model` and an optional key `effect`).
+
+**update**. a `update(model, event)` pure function, returns the new state.
+
+**view**. a `view(model, dispatch)` pure function, returns the ui declaration.
+
+**run** (optional). a `run(effect, event$)` function, returns an optional stream of events.
+
+## Start the app
+
+Call the `start(config)` API
+
+# Typings
 
 ```js
-const Integer = t.refinement(t.Number, n => n % 1 === 0, 'Integer')
-const Model = Integer
+interface IState<Model, Effect> {
+  model: Model;
+  effect?: Effect;
+}
+
+interface IConfig<Model, Effect, Event, View> {
+  init: () => IState<Model, Effect>;
+  update: (model: Model, event: Event) => IState<Model, Effect>;
+  view: (model: Model, dispatch: (event: Event) => void) => View;
+  run?: (effect: Effect, event$: Observable<Event>) => ?Observable<Event>;
+}
+
+interface IApp<Event, View> {
+  dispatch: (event: Event) => void;
+  view$: Observable<View>;
+}
+
+start<Model, Effect, Event, View>(config: IConfig<Model, Effect, Event, View>): IApp<Event, View>
 ```
 
-**The `Effect` type**
+# Example
+
+**A delayed counter**. When the buttons are pressed the counter is updated after 1 sec.
 
 ```js
-const Effect = t.Nil // no side effects in this example (see the "How to handle effects" example below)
-```
+import React from 'react'
+import ReactDOM from 'react-dom'
+import { start, Rx } from 'tom'
 
-**The `Event` type**
+const config = {
 
-```js
-const PositiveInteger = t.refinement(Integer, n => n >= 0, 'PositiveInteger')
+  init() {
+    return { model: 0 }
+  },
 
-const Increment = t.struct({
-  step: PositiveInteger
-}, 'Increment')
+  update(model, event) {
+    switch (event) {
+      case 'INCREMENT' :
+        return { model: model + 1 }
+      case 'DECREMENT' :
+        return { model: model - 1 }
+      case 'INCREMENT_REQUEST' :
+        return { model, effect: 'INCREMENT_EFFECT' } // effects are just declared
+      case 'DECREMENT_REQUEST' :
+        return { model, effect: 'DECREMENT_EFFECT' }
+      default :
+        return { model }
+    }
+  },
 
-// for each event define a toPatch() method returning a declarative patch to apply to the current state
-// see tcomb's immutability helpers
-Increment.prototype.toPatch = function(state) {
-  return {
-    model: { $set: state.model + this.step }
+  view(model, dispatch) {
+    const increment = () => dispatch('INCREMENT_REQUEST')
+    const decrement = () => dispatch('DECREMENT_REQUEST')
+    return (
+      <div>
+        <p>Counter: {model}</p>
+        <button onClick={increment}>+1</button>
+        <button onClick={decrement}>-1</button>
+      </div>
+    )
+  },
+
+  // runs the side effects
+  run(effect) {
+    switch (effect) {
+      case 'INCREMENT_EFFECT' :
+         // effects may return an observable of events which will feed the system
+        return Rx.Observable.just('INCREMENT').delay(1000)
+      case 'DECREMENT_EFFECT' :
+        return Rx.Observable.just('DECREMENT').delay(1000)
+      }
   }
+
 }
 
-const Decrement = t.struct({
-  step: PositiveInteger
-}, 'Decrement')
-
-Decrement.prototype.toPatch = function(state) {
-  return {
-    model: { $set: state.model - this.step }
-  }
-}
-
-// the Event type is the union of all events
-const Event = t.union([Increment, Decrement], 'Event')
+// start app
+const { view$ } = start(config)
+// render
+view$.subscribe(view => ReactDOM.render(view, document.getElementById('app')))
 ```
 
-**The `initialState`**
+# More examples
 
-```js
-const initialState = {
-  model: 0
-}
-```
+- [Basic (counter)](examples/counter.js)
+- [How to handle effects (delayed counter)](examples/delayed-counter.js)
+- [How to cancel effects (cancelable delayed counter)](examples/cancelable-delayed-counter.js)
+- [Perpetual effects (clock)](examples/clock.js)
+- [Http request](examples/http.js)
+- [Routing (hand written)](examples/hand-written-router.js)
+- [Routing (react-router)](examples/react-router.js)
 
-**The store**
+## Type safety
 
-```js
-const store = create(Model, Event, Effect, initialState)
-```
+- [Typed counter (tcomb)](examples/typed-counter-tcomb.js)
+- [Typed counter (flow)](examples/typed-counter-flow.js)
+- [Typed counter (typescript)](examples/typed-counter-typescript.tsx)
 
-Models, events and effects are type-checked:
+## Apps as react components
 
-```js
-store.dispatch(Increment({ step: -1 })) // => throws [tcomb] Invalid value -1 supplied to Increment/step: PositiveInteger
-
-store.dispatch(Increment({ step: 'a' })) // => throws [tcomb] Invalid value "a" supplied to Increment/step: Number
-
-store.dispatch(1) // => throws [tcomb] Invalid value 1 supplied to Event (no constructor returned by dispatch)
-```
-
-# Built-in effects
-
-- [HashHistoryEffect](lib/HashHistoryEffect.js)
-- [ParallelEffect](lib/ParallelEffect.js)
-- [SequenceEffect](lib/SequenceEffect.js)
-
-# Examples
-
-- [A type-checked counter](examples/counter/index.js)
-- [How to handle effects](examples/effects/index.js)
+- [reactify](reactify.js)
