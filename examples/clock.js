@@ -1,7 +1,7 @@
 import React from 'react'
 import { Rx } from 'tom'
 
-const clock = {
+export default {
 
   init() {
     return {
@@ -34,5 +34,3 @@ const clock = {
   }
 
 }
-
-export default clock

@@ -4,12 +4,30 @@ import t from 'tcomb'
 
 // events
 const IncrementRequest = t.struct({})
+IncrementRequest.prototype.update = function(model) {
+  return { model, effect: IncrementEffect({}) }
+}
 const Increment = t.struct({})
+Increment.prototype.update = function(model) {
+  return { model: model + 1 }
+}
 const DecrementRequest = t.struct({})
+DecrementRequest.prototype.update = function(model) {
+  return { model, effect: DecrementEffect({}) }
+}
 const Decrement = t.struct({})
+Decrement.prototype.update = function(model) {
+  return { model: model - 1 }
+}
 // effects
 const IncrementEffect = t.struct({})
+IncrementEffect.prototype.run = function() {
+  return Rx.Observable.just(Increment({})).delay(1000)
+}
 const DecrementEffect = t.struct({})
+DecrementEffect.prototype.run = function() {
+  return Rx.Observable.just(Decrement({})).delay(1000)
+}
 const Effect = t.union([IncrementEffect, DecrementEffect])
 // state
 const Integer = t.refinement(t.Number, n => n % 1 === 0)
@@ -25,13 +43,10 @@ export default {
   },
 
   update(model, event) {
-    return t.match(event,
-      Increment, () => State({ model: model + 1 }),
-      Decrement, () => State({ model: model - 1 }),
-      IncrementRequest, () => State({ model, effect: IncrementEffect({}) }),
-      DecrementRequest, () => State({ model, effect: DecrementEffect({}) }),
-      t.Any, () => State({ model })
-    )
+    if (t.Function.is(event.update)) {
+      return State(event.update(model))
+    }
+    return State({ model })
   },
 
   view(model, dispatch) {
@@ -47,10 +62,9 @@ export default {
   },
 
   run(effect) {
-    return t.match(effect,
-      IncrementEffect, () => Rx.Observable.just(Increment({})).delay(1000),
-      DecrementEffect, () => Rx.Observable.just(Decrement({})).delay(1000)
-    )
+    if (t.Function.is(effect.run)) {
+      return effect.run()
+    }
   }
 
 }

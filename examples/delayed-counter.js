@@ -1,7 +1,7 @@
 import React from 'react'
 import { Rx } from 'tom'
 
-const dalayedCounter = {
+export default {
 
   init() {
     return { model: 0 }
@@ -14,9 +14,9 @@ const dalayedCounter = {
     case 'DECREMENT' :
       return { model: model - 1 }
     case 'INCREMENT_REQUEST' :
-      return { model, effect: 'INCREMENT_EFFECT' }
+      return { model, effect: 'DELAYED_INCREMENT' }
     case 'DECREMENT_REQUEST' :
-      return { model, effect: 'DECREMENT_EFFECT' }
+      return { model, effect: 'DELAYED_DECREMENT' }
     default :
       return { model }
     }
@@ -36,13 +36,11 @@ const dalayedCounter = {
 
   run(effect) {
     switch (effect) {
-    case 'INCREMENT_EFFECT' :
+    case 'DELAYED_INCREMENT' :
       return Rx.Observable.just('INCREMENT').delay(1000)
-    case 'DECREMENT_EFFECT' :
+    case 'DELAYED_DECREMENT' :
       return Rx.Observable.just('DECREMENT').delay(1000)
     }
   }
 
 }
-
-export default dalayedCounter

@@ -1,7 +1,7 @@
 import React from 'react'
 import { Rx } from 'tom'
 
-const counter = {
+export default {
 
   init() {
     return { model: 0 }
@@ -14,9 +14,9 @@ const counter = {
     case 'DECREMENT' :
       return { model: model - 1 }
     case 'INCREMENT_REQUEST' :
-      return { model, effect: 'INCREMENT_EFFECT' }
+      return { model, effect: 'DELAYED_INCREMENT' }
     case 'DECREMENT_REQUEST' :
-      return { model, effect: 'DECREMENT_EFFECT' }
+      return { model, effect: 'DELAYED_DECREMENT' }
     case 'CANCEL' :
       return { model }
     default :
@@ -41,13 +41,11 @@ const counter = {
   run(effect, event$) {
     const cancel$ = event$.filter(e => e === 'CANCEL')
     switch (effect) {
-    case 'INCREMENT_EFFECT' :
+    case 'DELAYED_INCREMENT' :
       return Rx.Observable.just('INCREMENT').delay(2000).takeUntil(cancel$) // do not increment if a CANCEL event is emitted
-    case 'DECREMENT_EFFECT' :
+    case 'DELAYED_DECREMENT' :
       return Rx.Observable.just('DECREMENT').delay(2000).takeUntil(cancel$)
     }
   }
 
 }
-
-export default counter

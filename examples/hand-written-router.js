@@ -7,7 +7,7 @@ function getCurrentPath() {
 
 const path = getCurrentPath()
 
-const config = {
+export default {
 
   init() {
     return {
@@ -71,5 +71,3 @@ class B extends React.Component {
     )
   }
 }
-
-export default config

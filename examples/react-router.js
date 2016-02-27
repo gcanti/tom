@@ -34,7 +34,7 @@ const router = (
   </Router>
 )
 
-const config = {
+export default {
 
   init() {
     return {}
@@ -49,6 +49,4 @@ const config = {
   }
 
 }
-
-export default config
 

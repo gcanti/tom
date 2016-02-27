@@ -1,6 +1,6 @@
 import React from 'react'
 
-const counter = {
+export default {
 
   init() {
     return { model: 0 }
@@ -30,5 +30,3 @@ const counter = {
   }
 
 }
-
-export default counter
