@@ -29,6 +29,10 @@ A `tom` app is defined by a `config` object owning the following keys:
 
 Call the `start(config)` API.
 
+# Diagram
+
+![diagram](docs/images/diagram.png)
+
 # Formal definitions
 
 ```js
