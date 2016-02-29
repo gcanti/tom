@@ -219,7 +219,7 @@ Increment.prototype.update = function(model) {
 
 const Decrement = t.struct({}, 'Decrement')
 Decrement.prototype.update = function(model) {
-  return { model: model - 0.5 } // this wil throw "[tcomb] Invalid value -0.5 supplied to State/model: Integer"
+  return { model: model - 0.5 } // this will throw "[tcomb] Invalid value -0.5 supplied to State/model: Integer"
 }
 
 const Event = t.union([Increment, Decrement], 'Event')
@@ -358,10 +358,11 @@ export default {
 - [How to reduce the boilerplate (dynamic dispatching)](examples/delayed-counter-dynamic-dispatching.js)
 - [How to cancel effects (cancelable delayed counter)](examples/cancelable-delayed-counter.js)
 - [Perpetual effects (clock)](examples/clock.js)
-- [Http request](examples/http.js)
+- [Http requests](examples/http.js)
 - [Routing (hand written)](examples/hand-written-router.js)
 - [Routing (react-router)](examples/react-router.js)
-- [Withdraw saga](examples/withdraw-saga.js)
+- [Saga pattern (Withdraw saga)](examples/withdraw-saga.js)
+- [How to handle optmistic updates (optmistic counter)](examples/optmistic-counter.js)
 
 ## Type safety
 
