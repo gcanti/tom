@@ -405,6 +405,10 @@ export default {
 - [Static type checking (flow)](examples/typed-counter-flow.js)
 - [Static type checking (typescript)](examples/typed-counter-typescript.tsx)
 
+## Apps as groupoid
+
+- [Composing two apps (`compose` function)](examples/compose.js)
+
 ## Apps as react components
 
 - [reactify](reactify.js)
