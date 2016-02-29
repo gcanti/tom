@@ -10,10 +10,12 @@ interface IState<Model, Effect> {
   effect?: Effect;
 }
 
+type Dispatch<Event> = (event: Event) => void;
+
 interface IConfig<Model, Effect, Event, View> {
   init: () => IState<Model, Effect>;
   update: (model: Model, event: Event) => IState<Model, Effect>;
-  view: (model: Model, dispatch: (event: Event) => void) => View;
+  view: (model: Model, dispatch: Dispatch<Event>) => View;
   run?: (effect: Effect, event$: Observable<Event>) => ?Observable<Event>;
 }
 
