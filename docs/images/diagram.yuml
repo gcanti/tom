@@ -1,0 +1,6 @@
+[event${bg:limegreen}]-update()->[state${bg:orange}]
+[state$]-view()->[view${bg:mediumturquoise}]
+[state$]-run()->[effect$]
+[effect${bg:palegreen}]-computer->[nextEvent$$]
+[view$]-user->[nextEvent$$]
+[nextEvent$${bg:palegreen}]-dispatch()->[event$]
