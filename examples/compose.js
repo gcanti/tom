@@ -1,15 +1,20 @@
 import React from 'react'
 import { Rx } from 'tom'
 
-const composeStates = (x, y) => {
+function composeStates(x, y) {
   return {
     model: [x.model, y.model],
     effect: [x.effect, y.effect]
   }
 }
-const empty = Rx.Observable.just(null)
-const isNotNil = x => x !== null && x !== undefined
 
+function isNotNil(x) {
+  return x !== null && x !== undefined
+}
+
+const empty = Rx.Observable.just(null)
+
+// apps as groupoid
 export default function compose(x, y) {
   return {
     init() {
@@ -22,12 +27,12 @@ export default function compose(x, y) {
       )
     },
     view([mx, my], dispatch) {
-      const dispatch0 = event => dispatch([event])
-      const dispatch1 = event => dispatch([null, event])
+      const dispatchx = event => dispatch([event])
+      const dispatchy = event => dispatch([null, event])
       return (
         <div>
-          {x.view(mx, dispatch0)}
-          {y.view(my, dispatch1)}
+          {x.view(mx, dispatchx)}
+          {y.view(my, dispatchy)}
         </div>
       )
     },
