@@ -38,7 +38,7 @@ Call the `start(config)` API.
 ```js
 interface IState<Model, Effect> {
   model: Model;
-  effect?: Effect;
+  effect?: ?Effect;
 }
 
 type Dispatch<Event> = (event: Event) => void;

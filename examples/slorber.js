@@ -5,13 +5,10 @@ import counter from './counter'
 const counters = compose(counter, compose(counter, counter))
 
 function findEvent(event, predicate) {
-  if (event) {
-    if (Array.isArray(event)) {
-      return findEvent(event[0], predicate) || findEvent(event[1], predicate)
-    }
-    if (predicate(event)) {
-      return event
-    }
+  if (Array.isArray(event)) {
+    return findEvent(event[0], predicate) || findEvent(event[1], predicate)
+  } else if (predicate(event)) {
+    return event
   }
 }
 
