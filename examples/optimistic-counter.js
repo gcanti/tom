@@ -15,19 +15,19 @@ export default {
 
   update(model, event) {
     switch (event.type) {
-    case 'INCREMENT_REQUEST' :
+    case 'INCREMENT_REQUESTED' :
       const newModel = model + 1
       return {
         model: newModel,
-        effect: { type: 'TRANSACTION', model }
+        effect: { type: 'BEGIN_TRANSACTION', model }
       }
-    case 'ROLLBACK' :
+    case 'TRANSACTION_ROLLEDBACK' :
       return { model: event.model }
     }
   },
 
   view(model, dispatch) {
-    const increment = () => dispatch({ type: 'INCREMENT_REQUEST' })
+    const increment = () => dispatch({ type: 'INCREMENT_REQUESTED' })
     return (
       <div>
         <p>Counter: {model}</p>
@@ -38,12 +38,12 @@ export default {
 
   run(effect, event$) {
     const rollback$ = event$
-      .filter(e => e.type === 'ROLLBACK')
+      .filter(e => e.type === 'TRANSACTION_ROLLEDBACK')
       .take(1)
     switch (effect.type) {
-    case 'TRANSACTION' :
+    case 'BEGIN_TRANSACTION' :
       return Rx.Observable.fromPromise(
-        fakeApi().catch(() => ({ type: 'ROLLBACK', model: effect.model }))
+        fakeApi().catch(() => ({ type: 'TRANSACTION_ROLLEDBACK', model: effect.model }))
       ).takeUntil(rollback$)
     }
   }

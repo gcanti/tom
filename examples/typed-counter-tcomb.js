@@ -6,11 +6,14 @@ const Increment = t.struct({}, 'Increment')
 Increment.prototype.update = function(model) {
   return { model: model + 1 }
 }
+
 const Decrement = t.struct({}, 'Decrement')
 Decrement.prototype.update = function(model) {
   return { model: model - 0.5 } // this wil throw "[tcomb] Invalid value -0.5 supplied to State/model: Integer"
 }
+
 const Event = t.union([Increment, Decrement], 'Event')
+
 // state
 const Integer = t.refinement(t.Number, n => n % 1 === 0, 'Integer')
 const State = t.struct({

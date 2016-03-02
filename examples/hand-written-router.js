@@ -12,7 +12,7 @@ export default {
   init() {
     return {
       model: path,
-      effect: path ? { type: 'INIT_EFFECT' } : { type: 'INIT_EFFECT', path: '/a' }
+      effect: path ? { type: 'MOUNT_ROUTER' } : { type: 'MOUNT_ROUTER', path: '/a' }
     }
   },
 
@@ -39,7 +39,7 @@ export default {
 
   run(effect) {
     switch (effect.type) {
-    case 'INIT_EFFECT' :
+    case 'MOUNT_ROUTER' :
       if (effect.path) {
         location.hash = `#${effect.path}`
       }

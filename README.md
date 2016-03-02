@@ -79,18 +79,18 @@ const config = {
         return { model: model + 1 }
       case 'DECREMENT' :
         return { model: model - 1 }
-      case 'INCREMENT_REQUEST' :
-        return { model, effect: 'DELAYED_INCREMENT' } // here side effects are just declared
-      case 'DECREMENT_REQUEST' :
-        return { model, effect: 'DELAYED_DECREMENT' }
+      case 'INCREMENT_REQUESTED' :
+        return { model, effect: 'SCHEDULE_INCREMENT' } // here side effects are just declared
+      case 'DECREMENT_REQUESTED' :
+        return { model, effect: 'SCHEDULE_DECREMENT' }
       default :
         return { model }
     }
   },
 
   view(model, dispatch) {
-    const increment = () => dispatch('INCREMENT_REQUEST')
-    const decrement = () => dispatch('DECREMENT_REQUEST')
+    const increment = () => dispatch('INCREMENT_REQUESTED')
+    const decrement = () => dispatch('DECREMENT_REQUESTED')
     return (
       <div>
         <p>Counter: {model}</p>
@@ -103,10 +103,10 @@ const config = {
   // runs the side effects
   run(effect) {
     switch (effect) {
-      case 'DELAYED_INCREMENT' :
+      case 'SCHEDULE_INCREMENT' :
          // effects may return an observable of events which will feed the system
         return Rx.Observable.just('INCREMENT').delay(1000)
-      case 'DELAYED_DECREMENT' :
+      case 'SCHEDULE_DECREMENT' :
         return Rx.Observable.just('DECREMENT').delay(1000)
       }
   }
@@ -137,16 +137,17 @@ test('INCREMENT event', assert => {
 
 test('INCREMENT_REQUEST event', assert => {
   assert.plan(2)
-  const state = counter.update(0, 'INCREMENT_REQUEST')
+  const state = counter.update(0, 'INCREMENT_REQUESTED')
   assert.equal(state.model, 0, 'should not increment the model')
-  assert.equal(state.effect, 'DELAYED_INCREMENT', 'should return the correct effect')
+  assert.equal(state.effect, 'SCHEDULE_INCREMENT', 'should return the correct effect')
 })
 
 // testing effects
 
 test('DELAYED_INCREMENT effect', { timeout: 2000 }, assert => {
-  assert.plan(1)
-  const nextEvent$ = counter.run('DELAYED_INCREMENT')
+  assert.plan(2)
+  const nextEvent$ = counter.run('SCHEDULE_INCREMENT')
+  assert.ok(nextEvent$)
   nextEvent$.subscribe(event => {
     assert.equal(event, 'INCREMENT', 'should return an INCREMENT event')
   })
@@ -166,9 +167,9 @@ To address the first 2 issues let's replace the strings with constructors and ge
 
 ```js
 // events
-class IncrementRequest {
+class IncrementRequested {
   update(model) {
-    return { model, effect: new IncrementEffect() }
+    return { model, effect: new ScheduleIncrement() }
   }
 }
 class Increment {
@@ -176,9 +177,9 @@ class Increment {
     return { model: model + 1 }
   }
 }
-class DecrementRequest {
+class DecrementRequested {
   update(model) {
-    return { model, effect: new DecrementEffect() }
+    return { model, effect: new ScheduleDecrement() }
   }
 }
 class Decrement {
@@ -188,12 +189,12 @@ class Decrement {
 }
 
 // effects
-class IncrementEffect {
+class ScheduleIncrement {
   run() {
     return Rx.Observable.just(new Increment()).delay(1000)
   }
 }
-class DecrementEffect {
+class ScheduleDecrement {
   run() {
     return Rx.Observable.just(new Decrement()).delay(1000)
   }
@@ -218,8 +219,8 @@ const config = {
   },
 
   view(model, dispatch) {
-    const increment = () => dispatch(new IncrementRequest())
-    const decrement = () => dispatch(new DecrementRequest())
+    const increment = () => dispatch(new IncrementRequested())
+    const decrement = () => dispatch(new DecrementRequested())
     return (
       <div>
         <p>Counter: {model}</p>
@@ -299,9 +300,9 @@ const config = {
 
 ```js
 const VALID_PIN = '123'
-const VALID_PIN_EVENT = { type: 'VALID_PIN' }
-const INVALID_PIN_EVENT = { type: 'INVALID_PIN' }
-const REJECTED_PIN_EVENT = { type: 'REJECTED_PIN' }
+const PIN_VALIDATED = { type: 'PIN_VALIDATED' }
+const INVALID_PIN = { type: 'INVALID_PIN' }
+const PIN_REJECTED = { type: 'PIN_REJECTED' }
 
 class ATM extends React.Component {
   onEnter = () => {
@@ -341,15 +342,15 @@ export default {
         model: { isValidating: true },
         effect: { type: 'VALIDATE_PIN', pin: event.pin }
       }
-    case VALID_PIN_EVENT.type :
+    case PIN_VALIDATED.type :
       return {
         model: { authorized: true }
       }
-    case INVALID_PIN_EVENT.type :
+    case INVALID_PIN.type :
       return {
         model: { error: true }
       }
-    case REJECTED_PIN_EVENT.type :
+    case PIN_REJECTED.type :
       return {
         model: { authFailure: true }
       }
@@ -368,14 +369,14 @@ export default {
     case 'VALIDATE_PIN' :
 
       const nextEvent$ = Rx.Observable
-        .just(effect.pin === VALID_PIN ? VALID_PIN_EVENT : INVALID_PIN_EVENT)
+        .just(effect.pin === VALID_PIN ? PIN_VALIDATED : INVALID_PIN)
         .delay(500) // fake validation delay
 
       const rejectPin$ = event$
         .concat(nextEvent$)
-        .filter(e => e.type === INVALID_PIN_EVENT.type)
+        .filter(e => e.type === INVALID_PIN.type)
         .bufferWithCount(3)
-        .map(() => REJECTED_PIN_EVENT)
+        .map(() => PIN_REJECTED)
         .take(1)
 
       return nextEvent$.merge(rejectPin$)

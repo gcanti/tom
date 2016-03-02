@@ -19,7 +19,7 @@ interface IConfig<Model, Effect, Event, View> {
 }
 
 type Model = number;
-type Event = 'INCREMENT_REQUEST' | 'DECREMENT_REQUEST';
+type Event = 'INCREMENT' | 'DECREMENT';
 type Effect = void;
 type View = any;
 type State = IState<Model, Effect>;
@@ -33,9 +33,9 @@ const counter: Config = {
 
   update(model, event) {
     switch (event) {
-    case 'INCREMENT_REQUEST' :
+    case 'INCREMENT' :
       return { model: model + 1 }
-    case 'DECREMENT_REQUEST' :
+    case 'DECREMENT' :
       return { model: model - 1 }
     default :
       return { model }
@@ -43,8 +43,8 @@ const counter: Config = {
   },
 
   view(model, dispatch) {
-    const increment = () => dispatch('INCREMENT_REQUEST')
-    const decrement = () => dispatch('DECREMENT_REQUEST')
+    const increment = () => dispatch('INCREMENT')
+    const decrement = () => dispatch('DECREMENT')
     return (
       <div>
         <p>Counter: {model}</p>

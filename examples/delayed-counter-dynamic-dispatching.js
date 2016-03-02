@@ -2,33 +2,38 @@ import React from 'react'
 import { Rx } from 'tom'
 
 // events
-class IncrementRequest {
+class IncrementRequested {
   update(model) {
-    return { model, effect: new IncrementEffect() }
+    return { model, effect: new ScheduleIncrement() }
   }
 }
+
 class Increment {
   update(model) {
     return { model: model + 1 }
   }
 }
-class DecrementRequest {
+
+class DecrementRequested {
   update(model) {
-    return { model, effect: new DecrementEffect() }
+    return { model, effect: new ScheduleDecrement() }
   }
 }
+
 class Decrement {
   update(model) {
     return { model: model - 1 }
   }
 }
+
 // effects
-class IncrementEffect {
+class ScheduleIncrement {
   run() {
     return Rx.Observable.just(new Increment()).delay(1000)
   }
 }
-class DecrementEffect {
+
+class ScheduleDecrement {
   run() {
     return Rx.Observable.just(new Decrement()).delay(1000)
   }
@@ -53,8 +58,8 @@ const config = {
   },
 
   view(model, dispatch) {
-    const increment = () => dispatch(new IncrementRequest())
-    const decrement = () => dispatch(new DecrementRequest())
+    const increment = () => dispatch(new IncrementRequested())
+    const decrement = () => dispatch(new DecrementRequested())
     return (
       <div>
         <p>Counter: {model}</p>

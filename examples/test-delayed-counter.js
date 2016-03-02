@@ -11,16 +11,17 @@ test('INCREMENT event', assert => {
 
 test('INCREMENT_REQUEST event', assert => {
   assert.plan(2)
-  const state = counter.update(0, 'INCREMENT_REQUEST')
+  const state = counter.update(0, 'INCREMENT_REQUESTED')
   assert.equal(state.model, 0, 'should not increment the model')
-  assert.equal(state.effect, 'DELAYED_INCREMENT', 'should return the correct effect')
+  assert.equal(state.effect, 'SCHEDULE_INCREMENT', 'should return the correct effect')
 })
 
 // testing effects
 
 test('DELAYED_INCREMENT effect', { timeout: 2000 }, assert => {
-  assert.plan(1)
-  const nextEvent$ = counter.run('DELAYED_INCREMENT')
+  assert.plan(2)
+  const nextEvent$ = counter.run('SCHEDULE_INCREMENT')
+  assert.ok(nextEvent$)
   nextEvent$.subscribe(event => {
     assert.equal(event, 'INCREMENT', 'should return an INCREMENT event')
   })

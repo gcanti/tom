@@ -29,7 +29,7 @@ interface IConfig<Model, Effect, Event, View> {
 // counter typings
 type CounterModel = number;
 type CounterEffect = void;
-type CounterEvent = 'INCREMENT_REQUEST' | 'DECREMENT_REQUEST';
+type CounterEvent = 'INCREMENT_REQUESTED' | 'DECREMENT_REQUESTED';
 type CounterView = React.Element;
 
 // these typings come from the `compose` function
@@ -59,7 +59,7 @@ function findEvent(event: ?CounterEvent | PairEvent, predicate: (event: ?Counter
 }
 
 function isCounterEvent(event: ?CounterEvent): boolean {
-  return event === 'INCREMENT_REQUEST' || event === 'DECREMENT_REQUEST'
+  return event === 'INCREMENT_REQUESTED' || event === 'DECREMENT_REQUESTED'
 }
 
 function composeStates(count: number, state: IState<PairModel, PairEffect>): IState<TopModel, PairEffect> {
@@ -73,25 +73,28 @@ function composeStates(count: number, state: IState<PairModel, PairEffect>): ISt
 }
 
 function getCount(count: number, event: ?CounterEvent): number {
-  if (event === 'INCREMENT_REQUEST' && count < 3) {
+  if (event === 'INCREMENT_REQUESTED' && count < 3) {
     return count + 1
   }
-  if (event === 'DECREMENT_REQUEST' && count > 0) {
+  if (event === 'DECREMENT_REQUESTED' && count > 0) {
     return count - 1
   }
   return count
 }
 
 const config: TopConfig = {
+
   init() {
     return composeStates(0, pair.init())
   },
+
   update(model, event) {
     return composeStates(
       getCount(model.count, findEvent(event, isCounterEvent)),
       pair.update(model.pair, event)
     )
   },
+
   view(model, dispatch) {
     return (
       <div>
@@ -100,12 +103,14 @@ const config: TopConfig = {
       </div>
     )
   },
+
   run(effect, event$) {
     if (typeof pair.run === 'function') {
       return pair.run(effect, event$)
     }
     return null
   }
+
 }
 
 export default config

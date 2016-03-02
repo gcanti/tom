@@ -8,9 +8,9 @@ export default {
 
   update(model, event) {
     switch (event) {
-    case 'INCREMENT_REQUEST' :
+    case 'INCREMENT_REQUESTED' :
       return { model: model + 1 }
-    case 'DECREMENT_REQUEST' :
+    case 'DECREMENT_REQUESTED' :
       return { model: model - 1 }
     default :
       return { model }
@@ -18,8 +18,8 @@ export default {
   },
 
   view(model, dispatch) {
-    const increment = () => dispatch('INCREMENT_REQUEST')
-    const decrement = () => dispatch('DECREMENT_REQUEST')
+    const increment = () => dispatch('INCREMENT_REQUESTED')
+    const decrement = () => dispatch('DECREMENT_REQUESTED')
     return (
       <div>
         <p>Counter: {model}</p>

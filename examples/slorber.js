@@ -13,7 +13,7 @@ function findEvent(event, predicate) {
 }
 
 function isCounterEvent(event) {
-  return event === 'INCREMENT_REQUEST' || event === 'DECREMENT_REQUEST'
+  return event === 'INCREMENT_REQUESTED' || event === 'DECREMENT_REQUESTED'
 }
 
 function composeStates(count, state) {
@@ -27,25 +27,28 @@ function composeStates(count, state) {
 }
 
 function getCount(count, event) {
-  if (event === 'INCREMENT_REQUEST' && count < 3) {
+  if (event === 'INCREMENT_REQUESTED' && count < 3) {
     return count + 1
   }
-  if (event === 'DECREMENT_REQUEST' && count > 0) {
+  if (event === 'DECREMENT_REQUESTED' && count > 0) {
     return count - 1
   }
   return count
 }
 
 export default {
+
   init() {
     return composeStates(0, counters.init())
   },
+
   update(model, event) {
     return composeStates(
       getCount(model.count, findEvent(event, isCounterEvent)),
       counters.update(model.counters, event)
     )
   },
+
   view(model, dispatch) {
     return (
       <div>
@@ -54,7 +57,9 @@ export default {
       </div>
     )
   },
+
   run(effect, event$) {
     return counters.run(effect, event$)
   }
+
 }

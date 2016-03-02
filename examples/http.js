@@ -2,7 +2,6 @@ import React from 'react'
 import { Rx } from 'tom'
 
 const fakeApi = {
-
   load() {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
@@ -11,7 +10,6 @@ const fakeApi = {
       }, 1000)
     })
   }
-
 }
 
 class Gif {
@@ -32,16 +30,16 @@ class Gif {
 
   update(model, event) {
     switch (event.type) {
-    case 'LOAD_REQUEST' :
+    case 'LOAD_REQUESTED' :
       return {
         model: {
           isLoading: true,
           src: null,
           error: null
         },
-        effect: 'LOAD_EFFECT'
+        effect: 'SCHEDULE_LOAD'
       }
-    case 'LOAD_SUCCESS' :
+    case 'LOAD_SUCCEEDED' :
       return {
         model: {
           isLoading: false,
@@ -49,7 +47,7 @@ class Gif {
           error: null
         }
       }
-    case 'LOAD_FAILURE' :
+    case 'LOAD_FAILED' :
       return {
         model: {
           isLoading: false,
@@ -63,7 +61,7 @@ class Gif {
   }
 
   view(model, dispatch) {
-    const load = () => dispatch({ type: 'LOAD_REQUEST' })
+    const load = () => dispatch({ type: 'LOAD_REQUESTED' })
     const loadingMessage = model.isLoading ? <p>Loading...</p> : null
     const errorMessage = model.error ? <p>{model.error.message}</p> : null
     return (
@@ -78,11 +76,11 @@ class Gif {
 
   run(effect) {
     switch (effect) {
-    case 'LOAD_EFFECT' :
+    case 'SCHEDULE_LOAD' :
       return Rx.Observable.fromPromise(
         this.api.load()
-          .then(src => ({ type: 'LOAD_SUCCESS', src }))
-          .catch(error => ({ type: 'LOAD_FAILURE', error }))
+          .then(src => ({ type: 'LOAD_SUCCEEDED', src }))
+          .catch(error => ({ type: 'LOAD_FAILED', error }))
       )
     }
   }
