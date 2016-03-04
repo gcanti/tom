@@ -29,31 +29,31 @@ A `tom` app is defined by a `config` object owning the following keys:
 
 Call the `start(config)` API.
 
-# Diagram
+# Flow
 
 ![diagram](docs/images/diagram.png)
 
-# Formal definitions
+**Formal definitions** ([Flow](http://flowtype.org/) syntax)
 
 ```js
-interface IState<Model, Effect> {
+type IState<Model, Effect> = {
   model: Model;
-  effect?: ?Effect;
-}
+  effect?: Effect;
+};
 
 type Dispatch<Event> = (event: Event) => void;
 
-interface IConfig<Model, Effect, Event, View> {
+type IConfig<Model, Effect, Event, View> = {
   init: () => IState<Model, Effect>;
   update: (model: Model, event: Event) => IState<Model, Effect>;
   view: (model: Model, dispatch: Dispatch<Event>) => View;
   run?: (effect: Effect, event$: Observable<Event>) => ?Observable<Event>;
-}
+};
 
-interface IApp<Event, View> {
+type IApp<Event, View> = {
   dispatch: Dispatch<Event>;
   view$: Observable<View>;
-}
+};
 
 start<Model, Effect, Event, View>(config: IConfig<Model, Effect, Event, View>): IApp<Event, View>
 ```
