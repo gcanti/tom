@@ -1,3 +1,26 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**
+
+- [Setup](#setup)
+- [Features](#features)
+- [Workflow](#workflow)
+  - [App configuration](#app-configuration)
+  - [Wire them all](#wire-them-all)
+- [Flow](#flow)
+- [Example](#example)
+- [Writing tests](#writing-tests)
+- [Reducing the boilerplate and adding type safety](#reducing-the-boilerplate-and-adding-type-safety)
+  - [Adding type safety](#adding-type-safety)
+- [Implementing sagas](#implementing-sagas)
+- [Monitoring](#monitoring)
+- [More examples](#more-examples)
+  - [Type safety](#type-safety)
+  - [Apps as groupoid](#apps-as-groupoid)
+  - [Apps as react components](#apps-as-react-components)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Setup
 
 ```sh

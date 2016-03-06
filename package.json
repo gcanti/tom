@@ -4,7 +4,8 @@
   "description": "Elmish type-safe state and side effect manager using RxJS",
   "main": "lib/index.js",
   "files": [
-    "lib"
+    "lib",
+    "flow.js"
   ],
   "scripts": {
     "lint": "eslint lib"
