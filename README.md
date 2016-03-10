@@ -472,8 +472,7 @@ export default function monitor(config) {
 - [How to cancel effects (cancelable delayed counter)](examples/cancelable-delayed-counter.js)
 - [Perpetual effects (clock)](examples/clock.js)
 - [Http requests](examples/http.js)
-- [Routing (hand written)](examples/hand-written-router.js)
-- [Routing (react-router)](examples/react-router.js)
+- [Routing](examples/routing.js)
 - [Saga pattern (Withdraw saga)](examples/withdraw-saga.js)
 - [How to handle optmistic updates (optmistic counter)](examples/optmistic-counter.js)
 - [How to test events and effects](examples/test-delayed-counter.js)
@@ -492,3 +491,52 @@ export default function monitor(config) {
 ## Apps as react components
 
 - [reactify](reactify.js)
+
+# Router
+
+```js
+type History = ...created with the history package...;
+
+type Location = {
+  pathname: string,
+  query: Object
+}
+
+type Request<Context> = {
+  context?: Context,
+  history: History,
+  params: Object,
+  path: string,
+  pathname: string,
+  query: Object
+};
+
+type Handler<Context, View> = (request: Request<Context>) => View;
+
+type Route<Context, View> = {
+  path: string,
+  handler: Handler<Context, View>
+};
+
+interface Router<Context, View> {
+  new(routes: Array<Route<Context, View>>, history: History);
+  addRoute(path: string, handler: Handler<Context, View>);
+  match(location: Location, context?: Context) => View;
+}
+```
+
+## Example
+
+```js
+import { useQueries } from 'history'
+import createHistory from 'history/lib/createHashHistory'
+import Router from 'tom/lib/Router'
+
+const history = useQueries(createHistory)(/*{ queryKey: false }*/)
+
+const router = new Router(createLocationMatcher([
+  { path: '/', handler: ({ history: h }) => h.replace('/user?a=1') },
+  { path: '/user', handler: ({ params, query }) => <Component1 params={params} query={query} /> },
+  { path: '/orders/:orderId', handler: ({ params, query }) => <Component2 params={params} query={query} /> }
+], history))
+```

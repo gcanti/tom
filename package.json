@@ -1,6 +1,6 @@
 {
   "name": "tom",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Elmish type-safe state and side effect manager using RxJS",
   "main": "lib/index.js",
   "files": [
@@ -22,7 +22,8 @@
   "homepage": "https://github.com/gcanti/tom",
   "tags": [],
   "dependencies": {
-    "rx": "^4.0.0"
+    "rx": "^4.0.0",
+    "path-to-regexp": "^1.0.0"
   },
   "devDependencies": {
     "eslint": "1.10.3"
