@@ -8,12 +8,19 @@
   - [App configuration](#app-configuration)
   - [Wire them all](#wire-them-all)
 - [Flow](#flow)
+  - [Typings](#typings)
 - [Example](#example)
 - [Writing tests](#writing-tests)
 - [Reducing the boilerplate and adding type safety](#reducing-the-boilerplate-and-adding-type-safety)
   - [Adding type safety](#adding-type-safety)
 - [Implementing sagas](#implementing-sagas)
-- [Monitoring](#monitoring)
+- [Router](#router)
+  - [Typings](#typings-1)
+  - [Example](#example-1)
+- [Recipes](#recipes)
+  - [Given a `state` how to get the corresponding view stream](#given-a-state-how-to-get-the-corresponding-view-stream)
+  - [How to know when a stable equilibrium is reached](#how-to-know-when-a-stable-equilibrium-is-reached)
+  - [Monitoring](#monitoring)
 - [More examples](#more-examples)
   - [Type safety](#type-safety)
   - [Apps as groupoid](#apps-as-groupoid)
@@ -56,7 +63,9 @@ Call the `start(config)` API.
 
 ![diagram](docs/images/diagram.png)
 
-**Formal definitions** ([Flow](http://flowtype.org/) syntax)
+## Typings
+
+([Flow](http://flowtype.org/) syntax)
 
 ```js
 type IState<Model, Effect> = {
@@ -75,7 +84,13 @@ type IConfig<Model, Effect, Event, View> = {
 
 type IApp<Event, View> = {
   dispatch: Dispatch<Event>;
-  view$: Observable<View>;
+  event$: Subject<Event>,
+  state$: Observable<IState>,
+  model$: Observable<Model>,
+  view$: Observable<View>,
+  effect$: Observable<Effect>,
+  nextEvent$$: Observable<Observable<Event>>,
+  nextEvent$: Observable<Event>
 };
 
 start<Model, Effect, Event, View>(config: IConfig<Model, Effect, Event, View>): IApp<Event, View>
@@ -409,7 +424,91 @@ export default {
 }
 ```
 
-# Monitoring
+# Router
+
+This library comes with a basic router that plays well with view streams.
+
+## Typings
+
+```js
+type History = ...created with the history package...;
+
+type Location = {
+  pathname: string,
+  query: Object
+}
+
+type Request<Context> = {
+  context?: Context,
+  history: History,
+  params: Object,
+  path: string,
+  pathname: string,
+  query: Object
+};
+
+type Handler<Context, View> = (request: Request<Context>) => View;
+
+type Route<Context, View> = {
+  path: string,
+  handler: Handler<Context, View>
+};
+
+interface Router<Context, View> {
+  new(routes: Array<Route<Context, View>>, history: History);
+  addRoute(path: string, handler: Handler<Context, View>);
+  match(location: Location, context?: Context) => View;
+}
+```
+
+## Example
+
+```js
+import { useQueries } from 'history'
+import createHistory from 'history/lib/createHashHistory'
+import Router from 'tom/lib/Router'
+
+const history = useQueries(createHistory)(/*{ queryKey: false }*/)
+
+const router = new Router(createLocationMatcher([
+  { path: '/', handler: ({ history: h }) => h.replace('/user?a=1') },
+  { path: '/user', handler: ({ params, query }) => <Component1 params={params} query={query} /> },
+  { path: '/orders/:orderId', handler: ({ params, query }) => <Component2 params={params} query={query} /> }
+], history))
+```
+
+# Recipes
+
+## Given a `state` how to get the corresponding view stream
+
+```js
+import config from './myapp'
+const { view$ } = start({
+  init() { return state },
+  update: config.update,
+  view: config.view,
+  run: config.run
+})
+```
+
+## How to know when a stable equilibrium is reached
+
+```js
+import config from './myapp'
+const { nextEvent$$ } = start(config)
+let pending = []
+app.nextEvent$$.subscribe(x => {
+  pending.push(x)
+  x.subscribe(() => {}, null, () => {
+    pending = pending.filter(o => o !== x)
+    if (pending.length === 0) {
+      console.log('the app is stable')
+    }
+  })
+})
+```
+
+## Monitoring
 
 Monitoring an app is easy, just wrap the app with an helper function:
 
@@ -491,51 +590,3 @@ export default function monitor(config) {
 
 - [reactify](reactify.js)
 
-# Router
-
-```js
-type History = ...created with the history package...;
-
-type Location = {
-  pathname: string,
-  query: Object
-}
-
-type Request<Context> = {
-  context?: Context,
-  history: History,
-  params: Object,
-  path: string,
-  pathname: string,
-  query: Object
-};
-
-type Handler<Context, View> = (request: Request<Context>) => View;
-
-type Route<Context, View> = {
-  path: string,
-  handler: Handler<Context, View>
-};
-
-interface Router<Context, View> {
-  new(routes: Array<Route<Context, View>>, history: History);
-  addRoute(path: string, handler: Handler<Context, View>);
-  match(location: Location, context?: Context) => View;
-}
-```
-
-## Example
-
-```js
-import { useQueries } from 'history'
-import createHistory from 'history/lib/createHashHistory'
-import Router from 'tom/lib/Router'
-
-const history = useQueries(createHistory)(/*{ queryKey: false }*/)
-
-const router = new Router(createLocationMatcher([
-  { path: '/', handler: ({ history: h }) => h.replace('/user?a=1') },
-  { path: '/user', handler: ({ params, query }) => <Component1 params={params} query={query} /> },
-  { path: '/orders/:orderId', handler: ({ params, query }) => <Component2 params={params} query={query} /> }
-], history))
-```
