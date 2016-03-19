@@ -476,7 +476,6 @@ export default function monitor(config) {
 - [Saga pattern (Withdraw saga)](examples/withdraw-saga.js)
 - [How to handle optmistic updates (optmistic counter)](examples/optmistic-counter.js)
 - [How to test events and effects](examples/test-delayed-counter.js)
-- [Sébastien Lorber's problem (Reference: https://github.com/evancz/elm-architecture-tutorial/issues/50)](examples/slorber.js)
 
 ## Type safety
 
