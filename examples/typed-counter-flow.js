@@ -25,7 +25,7 @@ const counter: IConfig<Model, Effect, Event, View> = {
   },
 
   view(model, dispatch) {
-    const increment = () => dispatch('INCREMEN')
+    const increment = () => dispatch('INCREMENT')
     const decrement = () => dispatch('DECREMENT')
     return (
       <div>
