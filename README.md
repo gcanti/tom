@@ -113,9 +113,9 @@ const config = {
 
   update(model, event) {
     switch (event) {
-      case 'INCREMENT' :
+      case 'INCREMENTED' :
         return { model: model + 1 }
-      case 'DECREMENT' :
+      case 'DECREMENTED' :
         return { model: model - 1 }
       case 'INCREMENT_REQUESTED' :
         return { model, effect: 'SCHEDULE_INCREMENT' } // here side effects are just declared
@@ -143,10 +143,10 @@ const config = {
     switch (effect) {
       case 'SCHEDULE_INCREMENT' :
          // effects may return an observable of events which will feed the system
-        return Rx.Observable.just('INCREMENT').delay(1000)
+        return Rx.Observable.just('INCREMENTED').delay(1000)
       case 'SCHEDULE_DECREMENT' :
-        return Rx.Observable.just('DECREMENT').delay(1000)
-      }
+        return Rx.Observable.just('DECREMENTED').delay(1000)
+    }
   }
 
 }
@@ -187,7 +187,7 @@ test('DELAYED_INCREMENT effect', { timeout: 2000 }, assert => {
   const nextEvent$ = counter.run('SCHEDULE_INCREMENT')
   assert.ok(nextEvent$)
   nextEvent$.subscribe(event => {
-    assert.equal(event, 'INCREMENT', 'should return an INCREMENT event')
+    assert.equal(event, 'INCREMENTED', 'should return an INCREMENTED event')
   })
 })
 ```

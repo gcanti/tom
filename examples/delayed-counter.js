@@ -9,9 +9,9 @@ export default {
 
   update(model, event) {
     switch (event) {
-    case 'INCREMENT' :
+    case 'INCREMENTED' :
       return { model: model + 1 }
-    case 'DECREMENT' :
+    case 'DECREMENTED' :
       return { model: model - 1 }
     case 'INCREMENT_REQUESTED' :
       return { model, effect: 'SCHEDULE_INCREMENT' }
@@ -37,9 +37,9 @@ export default {
   run(effect) {
     switch (effect) {
     case 'SCHEDULE_INCREMENT' :
-      return Rx.Observable.just('INCREMENT').delay(1000)
+      return Rx.Observable.just('INCREMENTED').delay(1000)
     case 'SCHEDULE_DECREMENT' :
-      return Rx.Observable.just('DECREMENT').delay(1000)
+      return Rx.Observable.just('DECREMENTED').delay(1000)
     }
   }
 
