@@ -590,3 +590,6 @@ export default function monitor(config) {
 
 - [reactify](reactify.js)
 
+# License
+
+The MIT License (MIT)
